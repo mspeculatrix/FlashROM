@@ -3,10 +3,9 @@
 import curses
 import time
 
-import serial
-
 import funcs.file
 import funcs.ui
+import serial
 
 MAX_HANDSHAKES: int = 4
 
@@ -23,8 +22,8 @@ if curses.LINES < funcs.ui.MIN_LINES or curses.COLS < funcs.ui.MIN_COLS:
 curses.curs_set(False)  # turn off the flashing cursor
 
 ser = serial.Serial(
-	'/dev/ttyUSB0',
-	9600,
+	'/dev/ttyUSB0',  # configure for your machine
+	9600,  # fast enough
 	bytesize=serial.EIGHTBITS,
 	parity=serial.PARITY_EVEN,
 	stopbits=serial.STOPBITS_ONE,

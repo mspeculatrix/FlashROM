@@ -3,6 +3,7 @@
 .temp
 .dev
 *.graffle
+target.cfg
 
 # Python-generated files
 __pycache__/

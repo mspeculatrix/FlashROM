@@ -6,6 +6,8 @@ It talks via serial with the microcontroller on the board.
 
 All files to be uploaded to the Flash need to be in this program's `files` sub-directory.
 
+You need to have pyserial and curses installed.
+
 ## MAIN MENU
 
 Menu options are:
