@@ -2,6 +2,7 @@
 .vscode
 .temp
 .dev
+*.graffle
 
 # Python-generated files
 __pycache__/
