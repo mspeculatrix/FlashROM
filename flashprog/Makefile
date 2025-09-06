@@ -4,7 +4,7 @@
 # Project name
 TARGET = flashprog
 
-MCU   = atmega328p 		# Microcontroller
+MCU   = atmega328pb		# Microcontroller
 F_CPU = 16000000UL  	# Clock speed
 BAUD  = 38400UL			# Download rate - can try 19200 or 38400
 

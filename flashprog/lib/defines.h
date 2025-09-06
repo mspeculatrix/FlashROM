@@ -7,19 +7,24 @@
 #define INPUT  0b11111111
 #define NEWLINE 10
 
-#define FL_WE PB0				// ATMEGA pins used for control/addressing of
-#define FL_OE PB1				// flash chip
-#define FL_CE PB2
+#define FL_WE PC1				// ATMEGA pins used for control/addressing of
+#define FL_OE PC2				// flash chip
+#define FL_CE PC3
 
-#define R_WE PC2				// ATMEGA pins used for control/addressing of
-#define R_OE PC1				// SRAM chip
-#define R_CE PC0
+#define R_WE PD7				// ATMEGA pins used for control/addressing of
+#define R_OE PD6				// SRAM chip
+#define R_CE PD5
 
-#define MCP_RESET PC3
+#define A16 PE2  				// for highest addresses
+
+#define MCP_RESET PC6
 
 #define CMD_BUF_LEN 32
 #define MAX_MSG_TRIES 4
 
-#define DEBUG_LED PD7
+#define S1_LED PB1
+#define S2_LED PB2
+#define ACT_LED PB1				// Aliases
+#define ALERT_LED PB2
 
 #endif

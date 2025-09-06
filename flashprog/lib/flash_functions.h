@@ -34,24 +34,24 @@ void flashByteWrite(uint16_t address, uint8_t value) {
 
 // Send a value to an address
 void flashWrite(uint16_t address, uint8_t value) {
-	setPin(&PORTB, FL_CE, LOW);
+	setPin(&PORTC, FL_CE, LOW);
 	addrport.setWord(address);
 	dataport.setByte(value);
-	setPin(&PORTB, FL_WE, LOW); 	// latches address
+	setPin(&PORTC, FL_WE, LOW); 	// latches address
 	_delay_us(20); 					// pause for effect
-	setPin(&PORTB, FL_WE, HIGH);
-	setPin(&PORTB, FL_CE, HIGH);
+	setPin(&PORTC, FL_WE, HIGH);
+	setPin(&PORTC, FL_CE, HIGH);
 }
 
 uint8_t readFlash(uint32_t address) {
 	uint8_t value = 0;
 	addrport.setWord(address); 		// set address bus
-	setPin(&PORTB, FL_CE, LOW);
-	setPin(&PORTB, FL_OE, LOW);
+	setPin(&PORTC, FL_CE, LOW);
+	setPin(&PORTC, FL_OE, LOW);
 	_delay_us(20);
 	value = dataport.readByte();
-	setPin(&PORTB, FL_OE, HIGH);
-	setPin(&PORTB, FL_CE, HIGH);
+	setPin(&PORTC, FL_OE, HIGH);
+	setPin(&PORTC, FL_CE, HIGH);
 	return value;
 }
 

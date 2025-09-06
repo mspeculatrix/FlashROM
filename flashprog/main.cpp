@@ -8,8 +8,8 @@
  *
  */
 
-#ifndef __AVR_ATmega328P__
-#define __AVR_ATmega328P__
+#ifndef __AVR_ATmega328PB__
+#define __AVR_ATmega328PB__
 #endif
 
 #ifndef F_CPU
@@ -62,7 +62,7 @@ SMD_MCP23017 addrport = SMD_MCP23017(0x21 << 1);
 bool checkForMessage(const char* msg, char* buf);
 uint8_t getCommand(char* buf);
 
-// Look for a specific incoming message. Calls getCommand()
+// Look for a specific incoming message. Wrapper to getCommand()
 bool checkForMessage(const char* msg, char* buf) {
 	bool recvd = false;
 	getCommand(buf);
@@ -129,26 +129,32 @@ int main(void) {
 	 **************************************************************************/
 
 	 // Set port DDRs
-	DDRB |= (1 << FL_OE | 1 << FL_WE | 1 << FL_CE);
-	DDRC |= (1 << R_OE | 1 << R_WE | 1 << R_CE | 1 << MCP_RESET);
-	DDRD |= (1 << DEBUG_LED);
+	DDRB |= (1 << S1_LED | 1 << S2_LED);
+	DDRC |= (1 << FL_OE | 1 << FL_WE | 1 << FL_CE | 1 << MCP_RESET);
+	DDRD |= (1 << R_OE | 1 << R_WE | 1 << R_CE);
+	DDRE |= (1 << A16); // set as output
+
+	setLED(S1_LED, HIGH);
+	setLED(S2_LED, HIGH);
 
 	// Reset the port expanders.
 	setPin(&PORTC, MCP_RESET, LOW);
 	_delay_ms(10);
 	setPin(&PORTC, MCP_RESET, HIGH);
 
-	setPin(&PORTD, DEBUG_LED, HIGH);
-
 	// Set all the Flash control pins high (ie, disable Flash)
-	setPin(&PORTB, FL_OE, HIGH);
-	setPin(&PORTB, FL_WE, HIGH);
-	setPin(&PORTB, FL_CE, HIGH);
+	setPin(&PORTC, FL_OE, HIGH);
+	setPin(&PORTC, FL_WE, HIGH);
+	setPin(&PORTC, FL_CE, HIGH);
 
 	// Set all the RAM control pins high (ie, disable RAM)
-	setPin(&PORTC, R_OE, HIGH);
-	setPin(&PORTC, R_WE, HIGH);
-	setPin(&PORTC, R_CE, HIGH);
+	setPin(&PORTD, R_OE, HIGH);
+	setPin(&PORTD, R_WE, HIGH);
+	setPin(&PORTD, R_CE, HIGH);
+
+	// Set A16 pin LOW - not really using it yet.
+	setPin(&PORTE, A16, LOW);
+
 
 	serial.begin();
 
@@ -160,6 +166,10 @@ int main(void) {
 	addrport.setIODIR(MCP23017_PORTA, OUTPUT);
 	addrport.setIODIR(MCP23017_PORTB, OUTPUT);
 
+	setLED(S1_LED, LOW);
+	setLED(S2_LED, LOW);
+
+
 	/***************************************************************************
 	 *****   MAIN LOOP													   *****
 	 **************************************************************************/
@@ -168,8 +178,6 @@ int main(void) {
 	bool cmdRecvd = false;
 	bool msgRecvd = false;
 	bool dataRecvd = false;
-
-	setPin(&PORTD, DEBUG_LED, LOW);
 
 	while (1) {
 		if (cmdRecvd) {
@@ -205,6 +213,7 @@ int main(void) {
 					// If the remote determines that the sizes match, it sends
 					// 'WMEM'
 					if (checkForMessage("WMEM", cmdBuf)) {
+						// Send the same message back as confirmation.
 						serial.write("WMEM");
 					} else {
 						serial.write("*ERR");
@@ -212,7 +221,7 @@ int main(void) {
 					}
 					// RECEIVE DATA
 					if (!error) {
-						setPin(&PORTD, DEBUG_LED, HIGH);
+						setLED(ACT_LED, HIGH);
 						uint16_t dataIdx = 0; // for writing to RAM
 						uint8_t inByte = 0;
 						dataport.setIODIR(OUTPUT); 	// Set data port to output
@@ -224,7 +233,7 @@ int main(void) {
 								dataIdx++;
 							}
 						}
-						setPin(&PORTD, DEBUG_LED, LOW);
+						setLED(ACT_LED, LOW);
 					}
 					serial.write("DONE");
 
@@ -277,10 +286,10 @@ int main(void) {
 				} else {
 					serial.write("*ERR");
 				}
-				// -----------------------------------------------------------------
-				// ----- READ - read Flash memory ----------------------------------
-				// -----------------------------------------------------------------
-				// Read a bunch of values from Flash memory, starting at a given
+				// -------------------------------------------------------------
+				// ----- READ - read Flash memory ------------------------------
+				// -------------------------------------------------------------
+				// Read 256 values from Flash memory, starting at a given
 				// address.
 			} else if (strcmp(cmdBuf, "READ") == 0) {
 				// Confirm command received
