@@ -4,6 +4,7 @@
 .dev
 *.graffle
 target.cfg
+Kicad
 
 # Python-generated files
 __pycache__/

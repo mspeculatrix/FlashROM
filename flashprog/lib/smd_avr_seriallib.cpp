@@ -6,6 +6,7 @@
 */
 
 #include "smd_avr_seriallib.h"
+
 using namespace smd_avr_serial;
 
 // -------------------------------------------------------------------------
@@ -18,7 +19,7 @@ namespace smd_avr_serial {
 	uint8_t recvbuf_read_idx = 0;
 }
 
-ISR(USART_RX_vect) {
+ISR(USART0_RX_vect) {
 	// get incoming byte & add to buffer
 	recvbuf[recvbuf_write_idx] = UDR0;
 	recvbuf_write_idx++;
@@ -338,8 +339,8 @@ uint8_t SMD_AVR_Serial::_writeLongInt(const long longInt, bool addReturn = false
 	return resultCode;
 }
 
+// This is the main function used by the other write() and writeln() methods.
 uint8_t SMD_AVR_Serial::_writeStr(const char* string, bool addReturn) {
-	// This is the main function used by the other write() and writeln() methods.
 	uint8_t resultCode = 0;
 	if (strlen(string) > 0) {
 		uint8_t i = 0;

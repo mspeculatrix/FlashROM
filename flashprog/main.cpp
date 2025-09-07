@@ -29,7 +29,7 @@
 
 #include "lib/functions.h"
 #include "lib/smd_std_macros.h"
-#include "lib/smd_atmega_88_168_328.h"
+#include "lib/smd_atmega_328PB.h"
 
 #include "lib/smd_avr_seriallib.h"
 #include "lib/smd_avr_i2clib.h"
