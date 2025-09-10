@@ -5,7 +5,13 @@
 
 #define OUTPUT 0b00000000		// for setting data port direction
 #define INPUT  0b11111111
+
+#define DBON setLED(ALERT_LED, ON)
+#define DBOFF setLED(ALERT_LED, OFF)
+
+#define BAUDRATE 9600
 #define NEWLINE 10
+#define CR 13
 
 #define FL_WE PC1				// ATMEGA pins used for control/addressing of
 #define FL_OE PC2				// flash chip

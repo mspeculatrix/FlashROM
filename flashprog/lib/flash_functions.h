@@ -26,36 +26,40 @@ void sectorErase(uint16_t startAddress);
 // This is the main function to call to write a byte to memory. Makes multiple
 // calls to flashWrite below.
 void flashByteWrite(uint16_t address, uint8_t value) {
+	setPin(&PORTC, FL_CE, LOW);		// enable flash chip
 	flashWrite(0x5555, 0xAA);
 	flashWrite(0x2AAA, 0x55);
 	flashWrite(0x5555, 0xA0);
 	flashWrite(address, value);
+	setPin(&PORTC, FL_CE, HIGH);	// disable flash chip
+
 }
 
 // Send a value to an address
 void flashWrite(uint16_t address, uint8_t value) {
-	setPin(&PORTC, FL_CE, LOW);
+	// setPin(&PORTC, FL_CE, LOW);
 	addrport.setWord(address);
 	dataport.setByte(value);
 	setPin(&PORTC, FL_WE, LOW); 	// latches address
 	_delay_us(20); 					// pause for effect
 	setPin(&PORTC, FL_WE, HIGH);
-	setPin(&PORTC, FL_CE, HIGH);
+	// setPin(&PORTC, FL_CE, HIGH);
 }
 
 uint8_t readFlash(uint32_t address) {
 	uint8_t value = 0;
 	addrport.setWord(address); 		// set address bus
-	setPin(&PORTC, FL_CE, LOW);
+	setPin(&PORTC, FL_CE, LOW);		// enable flash chip
 	setPin(&PORTC, FL_OE, LOW);
 	_delay_us(20);
 	value = dataport.readByte();
 	setPin(&PORTC, FL_OE, HIGH);
-	setPin(&PORTC, FL_CE, HIGH);
+	setPin(&PORTC, FL_CE, HIGH);	// disable flash chip
 	return value;
 }
 
 void sectorErase(uint16_t startAddress) {
+	setPin(&PORTC, FL_CE, LOW);		// enable flash chip
 	flashWrite(0x5555, 0xAA);
 	flashWrite(0x2AAA, 0x55);
 	flashWrite(0x5555, 0x80);
@@ -63,6 +67,7 @@ void sectorErase(uint16_t startAddress) {
 	flashWrite(0x2AAA, 0x55);
 	flashWrite(startAddress, 0x30);
 	_delay_us(25);
+	setPin(&PORTC, FL_CE, HIGH);	// disable flash chip
 }
 
 #endif

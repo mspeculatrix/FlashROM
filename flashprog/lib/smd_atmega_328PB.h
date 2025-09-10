@@ -52,7 +52,7 @@
 #define USART_TX_GPIO       PD1
 #define USART_TX_PORT       PORTD
 #define USART_TX_DDR        DDRD
-#define USART_RX_GPIO       PORTD0
+#define USART_RX_GPIO       PD0
 #define USART_RX_PIN        PIND
 #define USART_RX_DDR        DDRD
 

@@ -50,7 +50,7 @@ uint16_t addrPtr = 0;
 uint16_t ramPtr = 0;
 uint16_t dataSize = 0;
 
-SMD_AVR_Serial serial = SMD_AVR_Serial(9600);
+SMD_AVR_Serial serial = SMD_AVR_Serial(BAUDRATE);
 SMD_MCP23008 dataport = SMD_MCP23008(0x20 << 1);
 SMD_MCP23017 addrport = SMD_MCP23017(0x21 << 1);
 
@@ -87,7 +87,7 @@ uint8_t getCommand(char* buf) {
 			if (inChar == NEWLINE && idx > 0) {
 				buf[idx] = 0;	// terminate
 				recvd = true;
-			} else if (inChar == 13) {
+			} else if (inChar == CR) {
 				// ignore carriage returns
 			} else {
 				buf[idx] = inChar;
@@ -128,7 +128,7 @@ int main(void) {
 	 *****   SETUP			 											   *****
 	 **************************************************************************/
 
-	 // Set port DDRs
+	 // Set port DDRs - set all signals that need to start as outputs
 	DDRB |= (1 << S1_LED | 1 << S2_LED);
 	DDRC |= (1 << FL_OE | 1 << FL_WE | 1 << FL_CE | 1 << MCP_RESET);
 	DDRD |= (1 << R_OE | 1 << R_WE | 1 << R_CE);
@@ -166,6 +166,8 @@ int main(void) {
 	addrport.setIODIR(MCP23017_PORTA, OUTPUT);
 	addrport.setIODIR(MCP23017_PORTB, OUTPUT);
 
+	serial.writeln("Up and running");
+
 	setLED(S1_LED, LOW);
 	setLED(S2_LED, LOW);
 
@@ -182,6 +184,7 @@ int main(void) {
 	while (1) {
 		if (cmdRecvd) {
 			bool error = false;
+			setLED(ACT_LED, ON);
 			serial.clearInputBuffer();
 			// -----------------------------------------------------------------
 			// ----- DNLD - file download --------------------------------------
@@ -305,8 +308,8 @@ int main(void) {
 			} else {
 				serial.write("*ERR");
 			}
-
 			// When done, reset
+			setLED(ACT_LED, OFF);
 			clearBuf(cmdBuf, CMD_BUF_LEN);
 			serial.clearInputBuffer();
 			cmdRecvd = false;
