@@ -13,6 +13,8 @@ extern SMD_MCP23008 dataport;
 extern SMD_MCP23017 addrport;
 
 #define FLASH_SECTOR_SIZE 4096
+#define FLASH_SECTOR_ERASE_DELAY 30
+#define FLASH_BYTE_DELAY 20
 
 // PROTOTYPES
 
@@ -32,7 +34,6 @@ void flashByteWrite(uint16_t address, uint8_t value) {
 	flashWrite(0x5555, 0xA0);
 	flashWrite(address, value);
 	setPin(&PORTC, FL_CE, HIGH);	// disable flash chip
-
 }
 
 // Send a value to an address
@@ -41,7 +42,7 @@ void flashWrite(uint16_t address, uint8_t value) {
 	addrport.setWord(address);
 	dataport.setByte(value);
 	setPin(&PORTC, FL_WE, LOW); 	// latches address
-	_delay_us(20); 					// pause for effect
+	_delay_us(FLASH_BYTE_DELAY); 					// pause for effect
 	setPin(&PORTC, FL_WE, HIGH);
 	// setPin(&PORTC, FL_CE, HIGH);
 }
@@ -51,7 +52,7 @@ uint8_t readFlash(uint32_t address) {
 	addrport.setWord(address); 		// set address bus
 	setPin(&PORTC, FL_CE, LOW);		// enable flash chip
 	setPin(&PORTC, FL_OE, LOW);
-	_delay_us(20);
+	_delay_us(FLASH_BYTE_DELAY);
 	value = dataport.readByte();
 	setPin(&PORTC, FL_OE, HIGH);
 	setPin(&PORTC, FL_CE, HIGH);	// disable flash chip
@@ -66,7 +67,7 @@ void sectorErase(uint16_t startAddress) {
 	flashWrite(0x5555, 0xAA);
 	flashWrite(0x2AAA, 0x55);
 	flashWrite(startAddress, 0x30);
-	_delay_us(25);
+	_delay_us(FLASH_SECTOR_ERASE_DELAY);
 	setPin(&PORTC, FL_CE, HIGH);	// disable flash chip
 }
 

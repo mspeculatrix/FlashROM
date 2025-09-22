@@ -79,7 +79,7 @@ def printBuf(buffer: list[bytes], num: int, line: int) -> None:
 def readFlashMemory():
 	"""
 	Prompt for a memory start address, send that to the remote device and
-	get back n bytes.
+	get back n bytes of data.
 	"""
 	clearSerial()
 	stdscr.clear()
