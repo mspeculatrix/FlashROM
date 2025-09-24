@@ -8,6 +8,7 @@ import funcs.ui
 import serial
 
 MAX_HANDSHAKES: int = 4
+VERSION: str = '1.3'
 
 
 stdscr: curses.window = curses.initscr()
@@ -76,7 +77,7 @@ def printBuf(buffer: list[bytes], num: int, line: int) -> None:
 	funcs.ui.printline(' '.join(items), line, stdscr)
 
 
-def readFlashMemory():
+def readMemory(cmd: str) -> None:
 	"""
 	Prompt for a memory start address, send that to the remote device and
 	get back n bytes of data.
@@ -89,12 +90,14 @@ def readFlashMemory():
 	stdscr.clear()
 	funcs.ui.topLine('READ MEMORY', stdscr)
 	funcs.ui.printline(f'Start address: 0x{addr:04X} {addr}', funcs.ui.MSGLINE, stdscr)
-	# send READ command
-	ser.write(b'READ\n')
+	# send command
+	writeCmd: bytes = cmd.encode('ascii')
+	ser.write(writeCmd)
+	ser.write(b'\n')
 	response: bool = False
 	while not response:
 		msg_in = ser.read(4)
-		if msg_in == b'READ':
+		if msg_in == writeCmd:
 			funcs.ui.printline('command received', funcs.ui.STATUSLINE, stdscr)
 			response = True
 			# Send address and read response
@@ -137,8 +140,8 @@ def sendWord(word):
 	"""
 	Take a 16-bit value and send it across serial as 2 bytes, MSB-first.
 	"""
-	hi_byte: bytes = chr(word >> 8).encode('ascii')
-	lo_byte: bytes = chr(word & 0x00FF).encode('ascii')
+	hi_byte: bytes = chr(word >> 8).encode('latin-1')
+	lo_byte: bytes = chr(word & 0x00FF).encode('latin-1')
 	# funcs.ui.printline(f'Word: {hi_byte} {lo_byte}', 35, stdscr)
 	ser.write(hi_byte)
 	ser.write(lo_byte)
@@ -321,7 +324,9 @@ def main(stdscr) -> None:
 		elif key == 'F':  # Select the data file
 			romfile = funcs.file.setFile(romfile, stdscr)
 		elif key == 'R':  # Read a block of data from Flash memory
-			readFlashMemory()
+			readMemory('READ')
+		elif key == 'S':  # Read a block of data from RAM
+			readMemory('SRAM')
 		elif key == 'U':  # Upload data to RAM
 			dataUploaded = uploadData(romfile)
 		elif key == 'W':  # Write RAM data to Flash

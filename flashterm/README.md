@@ -2,9 +2,9 @@
 
 This is designed to communicate with my flash programmer board running the `FlashProg` firmware.
 
-It talks via serial with the microcontroller on the board.
+It talks via serial with the microcontroller on the board. I use an FTDI-based USB-to-serial cable to connect my Linux PC to the board. This comes up as `/dev/ttyUSB0` which I've hardcoded into the code.
 
-All files to be uploaded to the Flash need to be in this program's `files` sub-directory.
+All files to be uploaded to the Flash need to be in a `files` sub-directory below whatever directory you run this code from.
 
 You need to have pyserial and curses installed.
 
@@ -13,13 +13,14 @@ You need to have pyserial and curses installed.
 Menu options are:
 
 - [F]ile selection. Choose a file from the `files` subdir. Defaults to `ROM.bin` on startup.
-- [R]ead memory. Prompts for a 4-digit hex start address and then commands remote board to send the contents of 128 bytes of Flash memory starting at that adddress.
 - [U]pload data. Uploads the contents of the currently selected file to the remote board's RAM.
 - [W]rite data to Flash. Tells the remote board to go ahead and write the contents of RAM to the Flash memory.
+- [R]ead flash memory. Prompts for a 4-digit hex start address and then commands remote board to send the contents of 256 bytes of Flash memory starting at that adddress.
+- [S]how SRAM. Prompts for a 4-digit hex start address and then commands remote board to send the contents of 256 bytes of SRAM memory starting at that adddress.
 
 ## STATUS
 
-Currently working and usable. Could be improved & expanded.
+Currently working and usable. Could be significantly improved & expanded.
 
 ## TO DO
 
@@ -27,7 +28,10 @@ Currently working and usable. Could be improved & expanded.
 
 ## VERSION HISTORY
 
-Dates indicate when `dev` branch was merged into `main`.
+### v1.3 - 24/09/2025
+
+- Some bugs squashed.
+- Really working now.
 
 ### v1.2 - 07/07/2025
 

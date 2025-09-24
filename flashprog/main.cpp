@@ -305,6 +305,22 @@ int main(void) {
 					uint8_t byteVal = readFlash(address + i);
 					serial.sendByte(byteVal);
 				}
+				// -------------------------------------------------------------
+				// ----- SRAM - show RAM data ----------------------------------
+				// -------------------------------------------------------------
+				// Read 256 values from Flash memory, starting at a given
+				// address.
+			} else if (strcmp(cmdBuf, "SRAM") == 0) {
+				// Confirm command received
+				serial.write("SRAM");
+				// Get address (two bytes) & relay it back.
+				uint16_t address = getWord();
+				sendWord(address);
+				// Read RAM memory & send bytes
+				for (uint16_t i = 0; i < 256; i++) {
+					uint8_t byteVal = readRAM(address + i);
+					serial.sendByte(byteVal);
+				}
 			} else {
 				serial.write("*ERR");
 			}

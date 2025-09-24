@@ -94,9 +94,10 @@ def mainMenu(uploadState, romfile: str, stdscr: curses.window):
 		'File: ' + romfile,
 		'',
 		'[F]ile selection',
-		'[R]ead memory',
 		'[U]pload data',
 		'[W]rite data to Flash',
+		'[R]ead Flash memory',
+		'[S]how RAM memory',
 		'',
 		'[Q]uit',
 	]
@@ -109,7 +110,7 @@ def mainMenu(uploadState, romfile: str, stdscr: curses.window):
 	gotKey = False
 	while not gotKey:
 		key = stdscr.getkey().upper()
-		if key in ['Q', 'F', 'R', 'U', 'W']:
+		if key in ['Q', 'F', 'R', 'U', 'W', 'S']:
 			gotKey = True
 	return key
 
