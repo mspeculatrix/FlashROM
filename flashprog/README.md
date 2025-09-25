@@ -1,6 +1,6 @@
 # Flash ROM programmer
 
-AVR Atmega328p code to program SST39SF010 flash chips. This is for experimenting with using flash chips in place of eeproms.
+AVR Atmega328p code to program SST39SF010 flash chips. This is for experimenting with using flash chips in place of EEPROMs.
 
 All operations are initiated by the remote computer which is running my `flashterm` Python program.
 
@@ -8,8 +8,8 @@ The code waits in a loop for a command coming down the serial connection. These 
 
 - DNLD - to download binary data over the serial connection and store it in RAM.
 - FLSH - to write the code in RAM to the flash chip.
-- READ - read 128 bytes of Flash memory starting at the given address and send it over serial.
-- SRAM - read 128 bytes of RAM starting at the given address and send it over serial.
+- READ - read 256 bytes of Flash memory starting at the given address and send it over serial.
+- SRAM - read 256 bytes of RAM starting at the given address and send it over serial.
 
 ## DOWNLOAD (DNLD)
 

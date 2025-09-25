@@ -24,28 +24,7 @@ Currently working and usable. Could be significantly improved & expanded.
 
 ## TO DO
 
-- Add command line options so that upload & flash routines can be called from a script.
-
-## VERSION HISTORY
-
-### v1.3 - 24/09/2025
-
-- Some bugs squashed.
-- Really working now.
-
-### v1.2 - 07/07/2025
-
-- Added file selection. Working version.
-
-### v1.1 - 06/07/2025
-
-- Moved UI stuff to a package.
-- Created file package.
-- Added READ function.
-
-### v1.0 - 04/07/2025
-
-Everything basically working, including curses UI.
+- Add command line options so that upload & flash routines can be called from a script. These would work in command line mode, without curses.
 
 ## Resources
 

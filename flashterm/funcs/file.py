@@ -61,7 +61,7 @@ def setFile(currPath: str, stdscr: curses.window) -> str:
 		if os.path.isfile(Path('files') / newfile):
 			filename = newfile
 		else:
-			ui.printline('**ERR: file not found', ui.ERRLINE, stdscr)
+			ui.printError('file not found', stdscr)
 			stdscr.refresh()
 			ui.anyKey(stdscr)
 	return filename

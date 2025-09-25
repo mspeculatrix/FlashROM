@@ -9,6 +9,8 @@ import serial
 
 MAX_HANDSHAKES: int = 4
 VERSION: str = '1.3'
+SERIAL_PORT: str = '/dev/ttyUSB0'  # configure for your machine
+BAUDRATE: int = 9600  # fast enough
 
 
 stdscr: curses.window = curses.initscr()
@@ -23,8 +25,8 @@ if curses.LINES < funcs.ui.MIN_LINES or curses.COLS < funcs.ui.MIN_COLS:
 curses.curs_set(False)  # turn off the flashing cursor
 
 ser = serial.Serial(
-	'/dev/ttyUSB0',  # configure for your machine
-	9600,  # fast enough
+	SERIAL_PORT,
+	BAUDRATE,
 	bytesize=serial.EIGHTBITS,
 	parity=serial.PARITY_EVEN,
 	stopbits=serial.STOPBITS_ONE,
@@ -89,35 +91,42 @@ def readMemory(cmd: str) -> None:
 	funcs.ui.printline(str(addr), funcs.ui.STATUSLINE, stdscr)
 	stdscr.clear()
 	funcs.ui.topLine('READ MEMORY', stdscr)
-	funcs.ui.printline(f'Start address: 0x{addr:04X} {addr}', funcs.ui.MSGLINE, stdscr)
-	# send command
-	writeCmd: bytes = cmd.encode('ascii')
-	ser.write(writeCmd)
-	ser.write(b'\n')
-	response: bool = False
-	while not response:
-		msg_in = ser.read(4)
-		if msg_in == writeCmd:
-			funcs.ui.printline('command received', funcs.ui.STATUSLINE, stdscr)
-			response = True
-			# Send address and read response
-			sendWord(addr)
-			addrResp = readWord()
-			if addr == addrResp:
-				funcs.ui.printline(
-					f'Addresses match: {addr} {addrResp}', funcs.ui.STATUSLINE, stdscr
-				)
-				# get 256 bytes back, 16 at a time
-				for i in range(0, 16):
-					stdscr.refresh()
-					dataItems, _ = getTestData(16)
-					printBuf(dataItems, 16, funcs.ui.INFOLINE + 2 + i)
-			else:
-				funcs.ui.printline(
-					f'Addresses do not match {addr} {addrResp}',
-					funcs.ui.ERRLINE,
-					stdscr,
-				)
+	funcs.ui.clearInfo(stdscr)
+	funcs.ui.printline(
+		f'Start address: 0x{addr:04X} {addr}', funcs.ui.INPUTLINE, stdscr
+	)
+	if cmd == 'SRAM' and addr > 0x7FFF:
+		funcs.ui.printError('Memory address too large for RAM', stdscr)
+	else:
+		# send command
+		writeCmd: bytes = cmd.encode('ascii')
+		ser.write(writeCmd)
+		ser.write(b'\n')
+		response: bool = False
+		while not response:
+			msg_in = ser.read(4)
+			if msg_in == writeCmd:
+				funcs.ui.printline('command received', funcs.ui.STATUSLINE, stdscr)
+				response = True
+				# Send address and read response
+				sendWord(addr)
+				addrResp = readWord()
+				if addr == addrResp:
+					funcs.ui.printline(
+						f'Addresses match: {addr:04X} {addrResp:04X}',
+						funcs.ui.STATUSLINE,
+						stdscr,
+					)
+					# get 256 bytes back, 16 at a time
+					for i in range(0, 16):
+						stdscr.refresh()
+						dataItems, _ = getTestData(16)
+						printBuf(dataItems, 16, funcs.ui.INFOLINE + 2 + i)
+				else:
+					funcs.ui.printError(
+						f'Addresses do not match {addr:04X} {addrResp:04X}',
+						stdscr,
+					)
 	clearSerial()
 	funcs.ui.anyKey(stdscr)
 
@@ -155,6 +164,7 @@ def uploadData(datafile: str) -> bool:
 	clearSerial()
 	stdscr.clear()
 	funcs.ui.topLine('UPLOADING', stdscr)
+	funcs.ui.clearInfo(stdscr)
 	funcs.ui.printline('File: ' + datafile, funcs.ui.MSGLINE, stdscr)
 
 	clearSerial()
@@ -185,12 +195,10 @@ def uploadData(datafile: str) -> bool:
 			funcs.ui.printInfoline('received ACKN', stdscr)
 			funcs.ui.printInfoline('handshake complete', stdscr)
 		elif handshake_attempts == MAX_HANDSHAKES:
-			funcs.ui.printline(
-				'**ERR: failed to complete handshake', funcs.ui.ERRLINE, stdscr
-			)
+			funcs.ui.printError('failed to complete handshake', stdscr)
 			fault = True
 		else:
-			funcs.ui.printline(f'  - got: {msg_in}', funcs.ui.ERRLINE, stdscr)
+			funcs.ui.printError(f'got: {msg_in}', stdscr)
 
 	# STEP 2: Transmit & agree on file size
 	if not fault:
@@ -207,7 +215,7 @@ def uploadData(datafile: str) -> bool:
 			if file_size == rec_file_sz:
 				funcs.ui.printInfoline('sizes match!', stdscr)
 			else:
-				funcs.ui.printline('*ERR: size mismatch', funcs.ui.ERRLINE, stdscr)
+				funcs.ui.printError('size mismatch', stdscr)
 				fault = True
 		else:
 			fault = True
@@ -252,9 +260,7 @@ def uploadData(datafile: str) -> bool:
 				# Expect 16 bytes back from client containing test data
 				dataItems, mismatch = getTestData(16, fileBuf)
 				if mismatch:
-					funcs.ui.printline(
-						'**ERR: data test mismatch', funcs.ui.ERRLINE, stdscr
-					)
+					funcs.ui.printError('data test mismatch', stdscr)
 					ser.write(b'*ERR\n')
 				else:
 					funcs.ui.printInfoline('data check OK', stdscr)
@@ -275,6 +281,7 @@ def writeData() -> bool | None:
 	infoLineIdx = 0
 	stdscr.clear()
 	funcs.ui.topLine('WRITE DATA', stdscr)
+	funcs.ui.clearInfo(stdscr)
 	funcs.ui.printline(
 		'Writing uploaded data to flash memory', funcs.ui.MSGLINE, stdscr
 	)
@@ -288,6 +295,10 @@ def writeData() -> bool | None:
 			funcs.ui.printInfoline('command received', stdscr)
 			funcs.ui.printInfoline('waiting for write to complete...', stdscr)
 			response = True
+		elif msg_in == b'ADDR':
+			addr: int = readWord()
+			info: str = f'    Sector: 0x{addr:04X}'
+			funcs.ui.printInfoline(info, stdscr)
 		elif msg_in == b'TSTD':
 			funcs.ui.printInfoline('receiving test data', stdscr)
 			testData, _ = getTestData(16)
@@ -297,7 +308,7 @@ def writeData() -> bool | None:
 			complete = True
 		# else:  # anything else is an error
 		# 	funcs.ui.printInfoline(msg_in.decode('ascii'))
-		# 	funcs.ui.printline('*ERROR*', funcs.ui.ERRLINE, stdscr)
+		# 	funcs.ui.printError('Unknown command', stdscr)
 		# 	error = True
 		# 	break
 	funcs.ui.anyKey(stdscr)
@@ -318,10 +329,11 @@ def main(stdscr) -> None:
 	############################################################################
 	loop = True
 	while loop:
-		key = funcs.ui.mainMenu(dataUploaded, romfile, stdscr)
+		key = funcs.ui.mainMenu(dataUploaded, SERIAL_PORT, BAUDRATE, romfile, stdscr)
 		if key == 'Q':  # Quit
 			loop = False
 		elif key == 'F':  # Select the data file
+			funcs.ui.clearInfo(stdscr)
 			romfile = funcs.file.setFile(romfile, stdscr)
 		elif key == 'R':  # Read a block of data from Flash memory
 			readMemory('READ')
@@ -333,7 +345,7 @@ def main(stdscr) -> None:
 			if dataUploaded:
 				writeData()
 			else:
-				funcs.ui.printline('No data uploaded', funcs.ui.ERRLINE, stdscr)
+				funcs.ui.printError('No data uploaded', stdscr)
 				funcs.ui.anyKey(stdscr)
 	ser.close()
 

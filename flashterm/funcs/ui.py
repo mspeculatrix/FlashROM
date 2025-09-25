@@ -83,12 +83,15 @@ def getInput(prompt: str, line: int, stdscr: curses.window) -> str | None:
 	return inStr
 
 
-def mainMenu(uploadState, romfile: str, stdscr: curses.window):
+def mainMenu(
+	uploadState, serialport: str, baudrate: int, romfile: str, stdscr: curses.window
+):
 	"""
 	Display the main menu and return the key selection.
 	"""
 	stdscr.clear()
 	topLine('MAIN MENU', stdscr)
+	printline(f'Port: {serialport} {baudrate}', INFOLINE, stdscr)
 	printDataState(uploadState, stdscr)
 	menuMsg = [
 		'File: ' + romfile,
@@ -122,7 +125,11 @@ def printDataState(uploaded: bool, stdscr: curses.window) -> None:
 	msg: str = '-- not uploaded --'
 	if uploaded:
 		msg = 'UPLOADED'
-	printline('DATA: ' + msg, STATUSLINE, stdscr)
+	printline('Data: ' + msg, STATUSLINE, stdscr)
+
+
+def printError(msg: str, stdscr: curses.window) -> None:
+	printline(f'** ERR: {msg} **', ERRLINE, stdscr)
 
 
 def printInfoline(msg: str, stdscr: curses.window) -> None:

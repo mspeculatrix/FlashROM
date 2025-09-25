@@ -271,6 +271,8 @@ int main(void) {
 						// memory, we need to erase the sector.
 						if (addrIdx % FLASH_SECTOR_SIZE == 0) {
 							sectorErase(addrIdx);
+							serial.write("ADDR");
+							sendWord(addrIdx);
 						}
 						// Read next byte from RAM
 						uint8_t byteVal = readRAM(addrIdx);
