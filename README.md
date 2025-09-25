@@ -1,8 +1,6 @@
 # FlashROM
 
-**This is a work in progress.**
-
-This is a project to create a dev board for writing ROM images to flash memory.
+This is a project to create a dev board for writing ROM images to flash memory. It's intended as a proof of concept project with the ultimate goal of integrating its functions into the main CPU board of the [Zolatron homebrew computer](https://medium.com/machina-speculatrix/subpage/0b8cf602629b).
 
 I'm documenting the project on [Machina Speculatrix](https://medium.com/machina-speculatrix), my Medium-based publication. (A Medium sub is required to read the articles.)
 
@@ -10,26 +8,31 @@ The articles are:
 
 - [Using flash memory as a homebrew computer ROM](https://medium.com/machina-speculatrix/using-flash-memory-as-a-homebrew-computer-rom-6c459e0632cc)
 - [A development board for flash-based ROM](https://medium.com/machina-speculatrix/a-development-board-for-flash-based-rom-d9f2fdf9bcad)
-- Software for the flash ROM development board.
+- [Software for the flash ROM development board](https://medium.com/machina-speculatrix/software-for-the-flash-rom-development-board-8913ffe00429).
 
 I'm using the SST39SF010A flash chip, with a view to incorporating this into my [Zolatron 6502-based homebrew computer](https://medium.com/machina-speculatrix/subpage/0b8cf602629b) project. The IC offers 1Mbit (128KB) of storage of which, with the current configuration, my dev board can address only half.
 
-The dev board consists of an ATMEGA328PB microcontroller, SRAM, port expanders to handle the data and address buses, the flash memory and a serial port to talk to a PC.
+The dev board consists of an ATMEGA328PB microcontroller, SRAM, port expanders to handle the data and address buses, the flash memory and a serial port to talk to a PC. Schematics and Gerbers for the dev board are in the `Hardware` folder.
+
+![Development board](img/FlashROM_dev_board.jpg)The dev board.
 
 The code consists of:
 
-- `flashprog`: C++ code for the ATMEGA328PB.
-- `flashterm`: Python code to run on the PC.
+- `flashprog`: C++ code for an ATMEGA328PB running at 16MHz.
+- `flashterm`: Python code to run on the PC. Uses curses and pyserial.
+
+![Screenshots](img/FlashROM-screengrabs-1.png)Python code running on Linux.
 
 ## VERSION HISTORY
 
 ### CURRENT VERSION
 
 - Squashed the address input bug.
+- Added images to repo.
 
 ### VERSION 1.3 - 24/09/2025
 
-First fully working version with one slight address input bug.
+- First fully working version with one slight address input bug and a lot of rough edges.
 
 ## TO DO
 
