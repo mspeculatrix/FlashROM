@@ -61,7 +61,7 @@ def getTestData(
 
 def hexStr(value, length=2) -> str:
 	"""
-	Print a numeric value as a hex string.
+	Format a numeric value as a hex string.
 	"""
 	fmt = '{0:0' + str(length) + 'X}'
 	return fmt.format(value)
@@ -136,7 +136,7 @@ def readWord() -> int:
 	return value
 
 
-def sendWord(word):
+def sendWord(word: int):
 	"""
 	Take a 16-bit value and send it across serial as 2 bytes, MSB-first.
 	"""
@@ -147,7 +147,7 @@ def sendWord(word):
 	ser.write(lo_byte)
 
 
-def uploadData(datafile) -> bool:
+def uploadData(datafile: str) -> bool:
 	"""
 	Send the contents of the file buffer (a list of bytes) to the board
 	for storage in RAM.

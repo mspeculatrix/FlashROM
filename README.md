@@ -21,8 +21,18 @@ The code consists of:
 - `flashprog`: C++ code for the ATMEGA328PB.
 - `flashterm`: Python code to run on the PC.
 
-## CURRENT BUGS
+## VERSION HISTORY
 
-- [flashprog] When the data gets flashed, the first three bytes of each sector are set to FF. This is maybe because we're not waiting long enough for the sector erase to complete??
-  - Original value for delay was 25ms. Tried 30 - no go. Tried 255 - also no go. Now thinking the problem is elsewhere.
-- [flashterm.py] No sanity checking for address input values.
+### CURRENT VERSION
+
+- Squashed the address input bug.
+
+### VERSION 1.3 - 24/09/2025
+
+First fully working version with one slight address input bug.
+
+## TO DO
+
+- [flashterm.py] Sanity checking for address input values.
+- [flashterm.py] Allow user setting of serial port.
+- [both] Try increasing serial speed for faster upload.

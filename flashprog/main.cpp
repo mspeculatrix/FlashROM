@@ -103,7 +103,7 @@ uint8_t getCommand(char* buf) {
 uint16_t getWord() {
 	uint16_t word = 0;
 	uint8_t byteCount = 2; // because MSB first
-	char wordBuf[2];
+	uint8_t wordBuf[2];
 	while (byteCount > 0) {
 		if (serial.inWaiting()) {
 			byteCount--;
