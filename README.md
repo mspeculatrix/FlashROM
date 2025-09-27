@@ -20,13 +20,19 @@ The code consists of:
 
 - `flashprog`: C++ code for an ATMEGA328PB running at 16MHz.
 - `flashterm`: Python code to run on the PC. Uses curses and pyserial.
+- `flashburn`: Python code. Simplified CLI version of flashterm with no curses and just used to upload & flash image without using RAM. Intended for use with scripting.
 
 ![Screenshots](img/FlashROM-screengrabs-1.png)Python code running on Linux.
 
 ## VERSION HISTORY
 
-### CURRENT VERSION
+Dates are when the `dev` branch was merged into `main`.
 
+### VERSION 1.4 - 27/09/2025
+
+- Created `flashburn.py`. Working.
+- Added function to erase Flash (useful for debugging).
+- Added function to upload data & write to Flash directly, without using the RAM.
 - Squashed the address input bug.
 - Added images to repo.
 

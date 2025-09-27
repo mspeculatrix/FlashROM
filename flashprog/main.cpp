@@ -49,6 +49,7 @@ using namespace smd_avr_i2c;
 uint16_t addrPtr = 0;
 uint16_t ramPtr = 0;
 uint16_t dataSize = 0;
+uint8_t dataChunk[CHUNKSIZE];
 
 SMD_AVR_Serial serial = SMD_AVR_Serial(BAUDRATE);
 SMD_MCP23008 dataport = SMD_MCP23008(0x20 << 1);
@@ -64,12 +65,12 @@ uint8_t getCommand(char* buf);
 
 // Look for a specific incoming message. Wrapper to getCommand()
 bool checkForMessage(const char* msg, char* buf) {
-	bool recvd = false;
+	bool error = false;
 	getCommand(buf);
-	if (strcmp(buf, msg) == 0) {
-		recvd = true;
+	if (!strcmp(buf, msg) == 0) {
+		error = true;
 	}
-	return recvd;
+	return error;
 }
 
 // Checks for characters coming in over serial and adds them to the given
@@ -113,6 +114,20 @@ uint16_t getWord() {
 	word = (wordBuf[1] << 8) + wordBuf[0];
 	return word;
 }
+
+// bool handshake(bool* error, char cmdBuf[]) {
+// 	bool handshake_ok = false;
+// 	uint8_t attempts = 0;
+// 	while (!handshake_ok && !error) {
+// 		attempts++;
+// 		serial.write("ACKN");
+// 		// handshake_ok = checkForMessage("ACKN", cmdBuf);
+// 		// if (!handshake_ok && attempts == MAX_MSG_TRIES) {
+// 		// 	*error = true;
+// 		// }
+// 	}
+// 	return handshake_ok;
+// }
 
 // Send a 16-bit value across the serial as two bytes, MSB-first.
 void sendWord(uint16_t word) {
@@ -166,8 +181,6 @@ int main(void) {
 	addrport.setIODIR(MCP23017_PORTA, OUTPUT);
 	addrport.setIODIR(MCP23017_PORTB, OUTPUT);
 
-	serial.writeln("Up and running");
-
 	setLED(S1_LED, LOW);
 	setLED(S2_LED, LOW);
 
@@ -186,36 +199,27 @@ int main(void) {
 			bool error = false;
 			setLED(ACT_LED, ON);
 			serial.clearInputBuffer();
+			serial.write("ACKN");
+
 			// -----------------------------------------------------------------
 			// ----- DNLD - file download --------------------------------------
 			// -----------------------------------------------------------------
 			if (strcmp(cmdBuf, "DNLD") == 0) {
-				// We send 'ACKN' after which the remote host should send
-				// 'SIZE', if it received the ACKN okay.
+				// The remote host should send 'SIZE', if it received the ACKN
 				// If it didn't, it will resend DNLD
 				dataSize = 0; // reset
-				bool handShake_ok = false;
-				uint8_t attempts = 0;
-				while (!handShake_ok && !error) {
-					attempts++;
-					serial.write("ACKN");
-					handShake_ok = checkForMessage("SIZE", cmdBuf);
-					if (!handShake_ok && attempts == MAX_MSG_TRIES) {
-						error = true;
-					}
-				}
-				// We have received 'SIZE'. Now get the next two bytes which
-				// tell us the file size.
+				bool error = false;
+				error = checkForMessage("SIZE", cmdBuf);
 				if (!error) {
-					dataSize = getWord();
-					// Send back 'SIZE' and the two size bytes to confirm we
-					// got the data okay.
+					// Send back 'SIZE'
 					serial.write("SIZE");
-					// Send two file size data bytes, MSB first
+					// Get the two bytes with the data sixe
+					dataSize = getWord();
+					// Send back two file size data bytes, MSB first
 					sendWord(dataSize);
 					// If the remote determines that the sizes match, it sends
 					// 'WMEM'
-					if (checkForMessage("WMEM", cmdBuf)) {
+					if (!checkForMessage("WMEM", cmdBuf)) {
 						// Send the same message back as confirmation.
 						serial.write("WMEM");
 					} else {
@@ -249,19 +253,108 @@ int main(void) {
 						serial.sendByte(testVal);
 					}
 					// Look for 'CONF' message from remote.
-					if (checkForMessage("CONF", cmdBuf)) {
+					if (!checkForMessage("CONF", cmdBuf)) {
 						dataRecvd = true;
 					} else {
 						dataRecvd = false; // just to be sure
 					}
 
 				} // if(!error)
-
 			// -----------------------------------------------------------------
-			// ----- FLSH - Flash ----------------------------------------------
+			// ----- BURN - Download data & write to Flash ---------------------
 			// -----------------------------------------------------------------
 			// Write the contents of the RAM to the Flash memory.
+			} else if (strcmp(cmdBuf, "BURN") == 0) {
+				dataSize = 0; // reset
+				bool error = false;
+				error = checkForMessage("SIZE", cmdBuf);
+				if (!error) {
+					// Send back 'SIZE'
+					serial.write("SIZE");
+					// Get the two bytes with the data sixe
+					dataSize = getWord();
+					// Send back two file size data bytes, MSB first
+					sendWord(dataSize);
+
+					error = checkForMessage("WFLS", cmdBuf);
+					if (!error) {
+						// Send the same message back as confirmation.
+						serial.write("WFLS");
+					} else {
+						serial.write("*ERR");
+					}
+					// RECEIVE DATA
+					if (!error) {
+						setLED(ACT_LED, HIGH);
+						uint16_t byteIdx = 0; // for writing to Flash
+						uint16_t fileIdx = 0;
+						uint8_t chunkIdx = 0;
+						uint8_t inByte = 0;
+						dataport.setIODIR(OUTPUT); 	// Set data port to output
+
+						while (byteIdx < dataSize) {
+							bool gotChunk = false;
+							while (!gotChunk) {
+								if (serial.inWaiting()) {
+									dataChunk[chunkIdx] = serial.getByte();
+									chunkIdx++;
+									fileIdx++;
+									if (chunkIdx == CHUNKSIZE || fileIdx == dataSize) {
+										gotChunk = true;
+									}
+								}
+							}
+							// chunkIdx contains how many bytes we have.
+							// It may be less than the chunksize if it's the
+							// last chunk.
+
+							// check if we're at a sector boundary
+							// - clear sector
+							if (byteIdx % FLASH_SECTOR_SIZE == 0) {
+								sectorErase(byteIdx);
+							}
+
+							// write bytes
+							for (uint8_t i = 0; i < chunkIdx; i++) {
+								flashByteWrite(byteIdx, dataChunk[i]);
+								byteIdx++;
+							}
+							chunkIdx = 0;
+							if (byteIdx == dataSize) {
+								serial.write("EODT"); // sent all bytes
+							} else {
+								serial.write("ACKN"); // to prompt sending of next chunk
+							}
+						}
+						// CHECK DATA
+						// Send back the first 16 bytes.
+						// Read each one from RAM and send it across serial.
+						dataport.setIODIR(INPUT);
+						for (uint16_t addr = 0; addr < 16; addr++) {
+							uint8_t testVal = readFlash(addr);
+							serial.sendByte(testVal);
+						}
+
+						setLED(ACT_LED, LOW);
+					}
+				}
+			} else if (strcmp(cmdBuf, "CLRF") == 0) {
+				// -------------------------------------------------------------
+				// ----- CLRF - Clear flash                ---------------------
+				// -------------------------------------------------------------
+				// Clear the Flash memory.
+				for (uint8_t sector = 0; sector < 4; sector++) {
+					uint16_t addr = sector * FLASH_SECTOR_SIZE;
+					sectorErase(addr);
+					serial.write("SECT");
+				}
+				serial.write("DONE");
+
 			} else if (strcmp(cmdBuf, "FLSH") == 0) {
+				// -------------------------------------------------------------
+				// ----- FLSH - Flash ------------------------------------------
+				// -------------------------------------------------------------
+				// Write the contents of the RAM to the Flash memory.
 				// Confirm receipt of command.
 				serial.write("FLSH");
 				if (dataSize > 0) {

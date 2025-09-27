@@ -97,8 +97,10 @@ def mainMenu(
 		'File: ' + romfile,
 		'',
 		'[F]ile selection',
-		'[U]pload data',
-		'[W]rite data to Flash',
+		'[C]lear Flash',
+		'[U]pload data to RAM',
+		'[W]rite RAM data to Flash',
+		'[B]urn - upload & write direct to Flash',
 		'[R]ead Flash memory',
 		'[S]how RAM memory',
 		'',
@@ -113,7 +115,7 @@ def mainMenu(
 	gotKey = False
 	while not gotKey:
 		key = stdscr.getkey().upper()
-		if key in ['Q', 'F', 'R', 'U', 'W', 'S']:
+		if key in ['Q', 'C', 'F', 'R', 'B', 'U', 'W', 'S']:
 			gotKey = True
 	return key
 

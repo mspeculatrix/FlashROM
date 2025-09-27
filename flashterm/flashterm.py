@@ -8,9 +8,10 @@ import funcs.ui
 import serial
 
 MAX_HANDSHAKES: int = 4
-VERSION: str = '1.3'
+VERSION: str = '1.4'
 SERIAL_PORT: str = '/dev/ttyUSB0'  # configure for your machine
 BAUDRATE: int = 9600  # fast enough
+CHUNKSIZE: int = 64  # num bytes per chunk when sending data
 
 
 stdscr: curses.window = curses.initscr()
@@ -32,6 +33,96 @@ ser = serial.Serial(
 	stopbits=serial.STOPBITS_ONE,
 	timeout=1,
 )
+
+
+def burnImage(datafile: str) -> None:
+	"""
+	Send the ROM data direct to the Flash chip, bypassing the RAM
+	"""
+	clearSerial()
+	stdscr.clear()
+	funcs.ui.topLine('UPLOADING & WRITING', stdscr)
+	funcs.ui.clearInfo(stdscr)
+	funcs.ui.printline('File: ' + datafile, funcs.ui.MSGLINE, stdscr)
+
+	fileBuf: list[bytes] = []
+	fault: bool = False
+
+	# file_size, _ = readFile(fileBuf, romfile)
+	fileBuf, file_size, error = funcs.file.readFile(datafile)
+	if error is None:
+		funcs.ui.printInfoline(f'filesize: 0x{hexStr(file_size, 2)}', stdscr)
+		printBuf(fileBuf, 16, funcs.ui.DATALINE)
+	else:
+		fault = True
+
+	# STEP 1: Handshake
+	if not fault:
+		fault = sendCommandWithAck('BURN', 'ACKN')
+
+	# STEP 2: Transmit & agree on file size
+	if not fault:
+		fault = sendSizeInfo(file_size)
+
+	# STEP 3: Send WFLS command
+	if not fault:
+		fault = sendCommandWithAck('WFLS', 'WFLS')
+
+	# STEP 4: Send data
+	if not fault:
+		funcs.ui.printline('Sending data...', funcs.ui.MSGLINE, stdscr)
+		done: bool = False
+		byteIdx: int = 0
+		while not done:
+			funcs.ui.printline(f'{hexStr(byteIdx)}', funcs.ui.STATUSLINE, stdscr)
+			ser.write(fileBuf[byteIdx])
+			byteIdx += 1
+			if byteIdx % CHUNKSIZE == 0 or byteIdx == len(fileBuf):  # end of a chunk
+				# Wait for a response
+				response_ok = False
+				while not response_ok:
+					msg_in: bytes = ser.read(4)
+					if msg_in == b'EODT':
+						done = True
+						response_ok = True
+						funcs.ui.printInfoline('received: EODT', stdscr)
+					elif msg_in == b'ACKN':
+						response_ok = True
+
+		funcs.ui.printInfoline('Performing data check...', stdscr)
+		mismatch: bool = False
+		# Expect 16 bytes back from client containing test data
+		dataItems, mismatch = getTestData(16, fileBuf)
+		printBuf(fileBuf, 16, funcs.ui.DATALINE)
+		printBuf(dataItems, 16, funcs.ui.DATALINE + 1)
+		if mismatch:
+			funcs.ui.printInfoline('- ERR: data mismatch', stdscr)
+			# ser.write(b'*ERR\n')
+		else:
+			funcs.ui.printInfoline('- data check OK', stdscr)
+			# ser.write(b'CONF\n'))
+	funcs.ui.anyKey(stdscr)
+
+
+def clearFlash() -> None:
+	clearSerial()
+	stdscr.clear()
+	funcs.ui.topLine('CLEARING FLASH', stdscr)
+	funcs.ui.clearInfo(stdscr)
+
+	error: bool = sendCommandWithAck('CLRF', 'ACKN')
+	done: bool = False
+	sector: int = 0
+	if not error:
+		while not done:
+			msg_in: bytes = ser.read(4)
+			if msg_in == b'SECT':
+				funcs.ui.printInfoline(f'Sector {sector} erased', stdscr)
+				sector += 1
+			elif msg_in == b'DONE':
+				done = True
+	clearSerial()
+	funcs.ui.anyKey(stdscr)
 
 
 def clearSerial() -> None:
@@ -145,6 +236,50 @@ def readWord() -> int:
 	return value
 
 
+def sendCommandWithAck(cmd: str, ack: str) -> bool:
+	error: bool = False
+	clearSerial()
+	funcs.ui.printline('Sending ' + cmd, funcs.ui.MSGLINE, stdscr)
+	ser.write(cmd.encode('ascii'))
+	ser.write(b'\n')
+	done: bool = False
+	attempts: int = 0
+	while not done:
+		attempts += 1
+		msg_in: bytes = ser.read(4)
+		if msg_in == ack.encode('ascii'):
+			funcs.ui.printInfoline('received: ' + ack, stdscr)
+			done = True
+		elif attempts == MAX_HANDSHAKES:
+			funcs.ui.printline(f'Got: {msg_in}', funcs.ui.STATUSLINE, stdscr)
+			error = True
+			done = True
+		else:
+			funcs.ui.printline(f'Got: {msg_in}', funcs.ui.STATUSLINE, stdscr)
+			time.sleep(0.01)  # 10ms
+	return error
+
+
+def sendSizeInfo(file_size: int) -> bool:
+	error: bool = False
+	funcs.ui.printline('Sending SIZE', funcs.ui.MSGLINE, stdscr)
+	ser.write(b'SIZE\n')
+	sendWord(file_size)
+	msg_in: bytes = ser.read(4)
+	if msg_in == b'SIZE':
+		funcs.ui.printInfoline('received: SIZE', stdscr)
+		rec_file_sz: int = readWord()
+		funcs.ui.printInfoline(f'received filesize: 0x{hexStr(rec_file_sz, 4)}', stdscr)
+		if file_size == rec_file_sz:
+			funcs.ui.printInfoline('sizes match!', stdscr)
+		else:
+			funcs.ui.printError('size mismatch', stdscr)
+			error = True
+	else:
+		error = True
+	return error
+
+
 def sendWord(word: int):
 	"""
 	Take a 16-bit value and send it across serial as 2 bytes, MSB-first.
@@ -167,9 +302,8 @@ def uploadData(datafile: str) -> bool:
 	funcs.ui.clearInfo(stdscr)
 	funcs.ui.printline('File: ' + datafile, funcs.ui.MSGLINE, stdscr)
 
-	clearSerial()
 	data_uploaded = False
-	fault = False
+	fault: bool = False
 	fileBuf: list[bytes] = []
 
 	# file_size, _ = readFile(fileBuf, romfile)
@@ -181,64 +315,15 @@ def uploadData(datafile: str) -> bool:
 		fault = True
 
 	# STEP 1: Handshake
-	handshake_ok: bool = False
-	handshake_attempts: int = 0
-	funcs.ui.printline('Starting handshake...', funcs.ui.MSGLINE, stdscr)
-	while not handshake_ok and not fault:
-		clearSerial()
-		handshake_attempts += 1
-		funcs.ui.printInfoline('sending DNLD', stdscr)
-		ser.write(b'DNLD\n')
-		msg_in = ser.read(4)
-		if msg_in == b'ACKN':
-			handshake_ok = True
-			funcs.ui.printInfoline('received ACKN', stdscr)
-			funcs.ui.printInfoline('handshake complete', stdscr)
-		elif handshake_attempts == MAX_HANDSHAKES:
-			funcs.ui.printError('failed to complete handshake', stdscr)
-			fault = True
-		else:
-			funcs.ui.printError(f'got: {msg_in}', stdscr)
+	fault = sendCommandWithAck('DNLD', 'ACKN')
 
 	# STEP 2: Transmit & agree on file size
 	if not fault:
-		funcs.ui.printline('Sending SIZE', funcs.ui.MSGLINE, stdscr)
-		ser.write(b'SIZE\n')
-		sendWord(file_size)
-		msg_in = ser.read(4)
-		if msg_in == b'SIZE':
-			funcs.ui.printInfoline('received: SIZE', stdscr)
-			rec_file_sz = readWord()
-			funcs.ui.printInfoline(
-				f'received filesize: 0x{hexStr(rec_file_sz, 4)}', stdscr
-			)
-			if file_size == rec_file_sz:
-				funcs.ui.printInfoline('sizes match!', stdscr)
-			else:
-				funcs.ui.printError('size mismatch', stdscr)
-				fault = True
-		else:
-			fault = True
+		fault = sendSizeInfo(file_size)
 
 	# STEP 3: Send Write Memory command
 	if not fault:
-		clearSerial()
-		funcs.ui.printline('Sending WMEM', funcs.ui.MSGLINE, stdscr)
-		ser.write(b'WMEM\n')
-		response_ok = False
-		attempts: int = 0
-		while not response_ok and not fault:
-			attempts += 1
-			msg_in = ser.read(4)
-			if msg_in == b'WMEM':
-				funcs.ui.printInfoline('received: WMEM', stdscr)
-				response_ok = True
-			elif attempts == MAX_HANDSHAKES:
-				funcs.ui.printline(f'Got: {msg_in}', funcs.ui.STATUSLINE, stdscr)
-				fault = True
-			else:
-				funcs.ui.printline(f'Got: {msg_in}', funcs.ui.STATUSLINE, stdscr)
-				time.sleep(0.01)  # 10ms
+		fault = sendCommandWithAck('WMEM', 'WMEM')
 
 	# STEP 4 - send data
 	if not fault:
@@ -260,7 +345,7 @@ def uploadData(datafile: str) -> bool:
 				# Expect 16 bytes back from client containing test data
 				dataItems, mismatch = getTestData(16, fileBuf)
 				if mismatch:
-					funcs.ui.printError('data test mismatch', stdscr)
+					funcs.ui.printError('data mismatch', stdscr)
 					ser.write(b'*ERR\n')
 				else:
 					funcs.ui.printInfoline('data check OK', stdscr)
@@ -332,6 +417,10 @@ def main(stdscr) -> None:
 		key = funcs.ui.mainMenu(dataUploaded, SERIAL_PORT, BAUDRATE, romfile, stdscr)
 		if key == 'Q':  # Quit
 			loop = False
+		elif key == 'B':  # Upload & write
+			burnImage(romfile)
+		elif key == 'C':  # clear flash
+			clearFlash()
 		elif key == 'F':  # Select the data file
 			funcs.ui.clearInfo(stdscr)
 			romfile = funcs.file.setFile(romfile, stdscr)

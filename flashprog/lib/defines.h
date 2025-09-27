@@ -13,6 +13,8 @@
 #define NEWLINE 10
 #define CR 13
 
+#define CHUNKSIZE 64
+
 #define FL_WE PC1				// ATMEGA pins used for control/addressing of
 #define FL_OE PC2				// flash chip
 #define FL_CE PC3
