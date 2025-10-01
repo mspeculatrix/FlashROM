@@ -115,20 +115,6 @@ uint16_t getWord() {
 	return word;
 }
 
-// bool handshake(bool* error, char cmdBuf[]) {
-// 	bool handshake_ok = false;
-// 	uint8_t attempts = 0;
-// 	while (!handshake_ok && !error) {
-// 		attempts++;
-// 		serial.write("ACKN");
-// 		// handshake_ok = checkForMessage("ACKN", cmdBuf);
-// 		// if (!handshake_ok && attempts == MAX_MSG_TRIES) {
-// 		// 	*error = true;
-// 		// }
-// 	}
-// 	return handshake_ok;
-// }
-
 // Send a 16-bit value across the serial as two bytes, MSB-first.
 void sendWord(uint16_t word) {
 	serial.sendByte((uint8_t)(word >> 8));	// MSB

@@ -1,0 +1,69 @@
+#ifndef __FLASH_FUNCTIONS_H__
+#define __FLASH_FUNCTIONS_H__
+
+#include <avr/io.h>
+#include <util/delay.h>
+#include "smd_std_macros.h"
+#include "defines.h"
+#include "functions.h"
+
+#define FLASH_SECTOR_SIZE 4096
+#define FLASH_SECTOR_ERASE_DELAY 25 // ms
+#define FLASH_BYTE_DELAY 20         // us
+
+// PROTOTYPES
+
+void flashByteWrite(uint16_t address, uint8_t value);
+void flashWrite(uint16_t address, uint8_t value);
+uint8_t readFlash(uint32_t address);
+void sectorErase(uint16_t startAddress);
+
+// FUNCTIONS
+
+// This is the main function to call to write a byte to memory. Makes multiple
+// calls to flashWrite below.
+void flashByteWrite(uint16_t address, uint8_t value) {
+	PORTC.OUTCLR = FL_CE;
+	flashWrite(0x5555, 0xAA);
+	flashWrite(0x2AAA, 0x55);
+	flashWrite(0x5555, 0xA0);
+	flashWrite(address, value);
+	PORTC.OUTSET = FL_CE;
+}
+
+// Write a value to an address
+void flashWrite(uint16_t address, uint8_t value) {
+	setAddress(address);
+	PORTD.OUT = value;
+	PORTC.OUTCLR = FL_WE;
+	_delay_us(FLASH_BYTE_DELAY); 	// pause for effect
+	PORTC.OUTSET = FL_WE;
+}
+
+// Read a byte value from an address
+uint8_t readFlash(uint32_t address) {
+	uint8_t value = 0;
+	setAddress(address); 		// set address bus
+	PORTC.OUTCLR = FL_CE;			// enable flash chip
+	PORTC.OUTCLR = FL_OE;
+	_delay_us(FLASH_BYTE_DELAY);
+	value = PORTD.IN;
+	PORTC.OUTSET = FL_OE;
+	PORTC.OUTSET = FL_CE;			// disable flash chip
+	return value;
+}
+
+// Erase an entire 4KB sector starting at a given address
+void sectorErase(uint16_t startAddress) {
+	PORTC.OUTCLR = FL_CE;			// enable flash chip
+	flashWrite(0x5555, 0xAA);
+	flashWrite(0x2AAA, 0x55);
+	flashWrite(0x5555, 0x80);
+	flashWrite(0x5555, 0xAA);
+	flashWrite(0x2AAA, 0x55);
+	flashWrite(startAddress, 0x30);
+	_delay_ms(FLASH_SECTOR_ERASE_DELAY);	// allow the dust to settle
+	PORTC.OUTSET = FL_CE;			// disable flash chip
+}
+
+#endif
