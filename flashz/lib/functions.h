@@ -8,12 +8,12 @@
 
 // PROTOTYPES
 void clearBuf(char* buf, uint8_t len);
+void disableAddressBusCtrl();
 void disableControlSignals();
+void enableAddressBusCtrl();
 void enableControlSignals();
 void resetSystem();
 void setAddress(uint16_t addr);
-void setAddressBusActive();
-void setAddressBusInactive();
 
 // Clear any buffer you like by writing zeros to it.
 void clearBuf(char* buf, uint8_t len) {
@@ -30,22 +30,28 @@ void disableAddressBusCtrl() {
 
 void disableControlSignals() {
 	// Make control signal pins inputs
-	for (uint8_t i = 2; i <= 7; i++) {
-		PORTA.DIRCLR = 1 << i;
-	}
+	// We don't touch pins 0 and 1 because those are the serial port
+	PORTA.DIRCLR = CTRL_PORT_MASK;
+	// for (uint8_t i = 2; i < 8; i++) {
+	// 	PORTA.DIRCLR = (1 << i);
+	// }
 }
 
 void enableAddressBusCtrl() {
+	// Set address pins as outputs
 	PORTC.DIR = 0b00111111; // PORTC - A0-A5
-	PORTE.DIR = 0b00001111; // PORTE - A12-A15
 	PORTF.DIR = 0b00111111; // PORTF - A6-A11
+	PORTE.DIR = 0b00001111; // PORTE - A12-A15
 }
 
 void enableControlSignals() {
-	// Make control signal pins outputs & high
-	for (uint8_t i = 2; i <= 7; i++) {
-		PORTA.DIRSET = 1 << i;
-		PORTA.OUTSET = 1 << i;
+	// Make control signal pins outputs & set high
+	// We don't touch pins 0 and 1 because those are the serial port
+	// PORTA.DIRSET = CTRL_PORT_MASK;
+	// PORTA.OUTSET = CTRL_PORT_MASK;
+	for (uint8_t i = 2; i < 8; i++) {
+		PORTA.DIRSET = (1 << i);
+		PORTA.OUTSET = (1 << i);
 	}
 }
 

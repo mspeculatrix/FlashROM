@@ -23,16 +23,18 @@
 #define CPU_RDY     PIN2_bm
 #define CPU_BE      PIN3_bm
 #define SYS_PHI2    PIN4_bm
-#define SYS_READ_EN PIN5_bm
-#define FL_OE       PIN5_bm // alias
-#define SYS_ROM_EN  PIN6_bm
-#define FL_CE       PIN6_bm // alias
+#define SYS_ROM_EN  PIN5_bm
+#define FL_CE       PIN5_bm // alias
+#define SYS_READ_EN PIN6_bm
+#define FL_OE       PIN6_bm // alias
 #define FL_WE       PIN7_bm
+
+#define CTRL_PORT_MASK 0b11111100
 
 // This is on PORTF
 #define SYS_RES     PIN6_bm
 
-#define CMD_BUF_LEN 32
+#define CMD_BUF_LEN 4
 #define MAX_MSG_TRIES 4
 
 #endif

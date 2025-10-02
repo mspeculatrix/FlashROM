@@ -18,8 +18,6 @@
 #include "lib/functions.h"
 #include "lib/flash_functions.h"
 
-
-
 /*******************************************************************************
 *****   GLOBALS                                                            *****
 *******************************************************************************/
@@ -36,6 +34,8 @@ SMD_AVR_Serial4809 serial = SMD_AVR_Serial4809(SERIAL_BAUDRATE);
 // PROTOTYPES
 bool checkForMessage(const char* msg, char* buf);
 uint8_t getCommand(char* buf);
+uint16_t getWord();
+void sendWord(uint16_t word);
 
 // Look for a specific incoming message. Wrapper to getCommand()
 bool checkForMessage(const char* msg, char* buf) {
@@ -95,11 +95,14 @@ void sendWord(uint16_t word) {
 	serial.sendByte((uint8_t)(word & 0x00FF));	// LSB
 }
 
-/* =============================================================================
-   =====   MAIN                                                            =====
-   ===========================================================================*/
+/*******************************************************************************
+*****   MAIN                                                               *****
+*******************************************************************************/
 int main(void) {
-	/**   SETUP			 											         **/
+
+	//--------------------------------------------------------------------------
+	//-----   SETUP                                                        -----
+	//--------------------------------------------------------------------------
 
 	CCP = CCP_IOREG_gc;		// Unlock protected registers
 	CLKCTRL.MCLKCTRLB = 0;  // No prescaling, full main clock frequency
@@ -116,29 +119,22 @@ int main(void) {
 	PORTC.PIN7CTRL = PORT_PULLUPEN_bm;
 
 	// Set up pins
-	DATA_PORT_INPUT; 		// Start as input so high-Z
+	DATA_PORT_INPUT; 		// Start as input, so high-Z
 	disableAddressBusCtrl();
 	disableControlSignals();
 
 	serial.begin();
 
-	/***************************************************************************
-	 *****   MAIN LOOP													   *****
-	 **************************************************************************/
-
 	char cmdBuf[CMD_BUF_LEN];
-	// uint8_t cmdBufIdx = 0;
 	bool cmdRecvd = false;
-	//bool msgRecvd = false;
-	//bool dataRecvd = false;
-	serial.writeln("STRT");
+
+	/***************************************************************************
+	******   MAIN LOOP													   *****
+	***************************************************************************/
 
 	while (1) {
 		if (cmdRecvd) {
-			// bool error = false;
 			serial.clearInputBuffer();
-			serial.write("ACKN");
-
 			enableControlSignals();
 			enableAddressBusCtrl();
 
@@ -147,6 +143,7 @@ int main(void) {
 			// -----------------------------------------------------------------
 			// Write the contents of the RAM to the Flash memory.
 			if (strcmp(cmdBuf, "BURN") == 0) {
+				serial.write("ACKN");
 				dataSize = 0; // reset
 				bool error = false;
 				error = checkForMessage("SIZE", cmdBuf);
@@ -210,18 +207,22 @@ int main(void) {
 						// CHECK DATA
 						// Send back the first 16 bytes.
 						// Read each one from RAM and send it across serial.
+						serial.write("VRFY");
 						DATA_PORT_INPUT;
 						for (uint16_t addr = 0; addr < 16; addr++) {
 							uint8_t testVal = readFlash(addr);
 							serial.sendByte(testVal);
 						}
 					}
+				} else {
+					serial.write("SERR");
 				}
 			} else if (strcmp(cmdBuf, "CLRF") == 0) {
 				// -------------------------------------------------------------
 				// ----- CLRF - Clear flash                ---------------------
 				// -------------------------------------------------------------
 				// Clear the Flash memory.
+				serial.write("ACKN");
 				for (uint8_t sector = 0; sector < 4; sector++) {
 					uint16_t addr = sector * FLASH_SECTOR_SIZE;
 					sectorErase(addr);
@@ -248,6 +249,7 @@ int main(void) {
 				serial.write("*ERR");
 			}
 			// When done, reset
+			cmdRecvd = false;
 			clearBuf(cmdBuf, CMD_BUF_LEN);
 			serial.clearInputBuffer();
 			cmdRecvd = false;

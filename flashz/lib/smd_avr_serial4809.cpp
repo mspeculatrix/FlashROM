@@ -200,6 +200,7 @@ bool SMD_AVR_Serial4809::sendByte(uint8_t byteVal) {
 	while (!(USART0.STATUS & USART_DREIF_bm)) {};
 	// Send data
 	USART0.TXDATAL = byteVal;
+	_delay_ms(DEF_SEND_CHAR_DELAY);
 	return error;
 }
 

@@ -177,12 +177,12 @@ int main(void) {
 	char cmdBuf[CMD_BUF_LEN];
 	uint8_t cmdBufIdx = 0;
 	bool cmdRecvd = false;
-	bool msgRecvd = false;
+	// bool msgRecvd = false;
 	bool dataRecvd = false;
 
 	while (1) {
 		if (cmdRecvd) {
-			bool error = false;
+			// bool error = false;
 			setLED(ACT_LED, ON);
 			serial.clearInputBuffer();
 			serial.write("ACKN");

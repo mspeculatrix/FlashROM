@@ -9,11 +9,17 @@
   uint8_t error = serial.begin();
 
 */
+
+#ifndef __AVR_ATmega4809__
+#define __AVR_ATmega4809__
+#endif
+
 #ifndef __SMD_AVR_SERIAL4809_H__
 #define __SMD_AVR_SERIAL4809_H__
 #include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <util/delay.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
@@ -33,6 +39,8 @@
 					  // byte buffer. It's the high-order version of null
 
 #define SER_READLINE_BUFFER_MAX 255
+
+#define DEF_SEND_CHAR_DELAY 5
 
 // ERROR & RESULT CODES
 //#define SER_RES_INT_TOO_LARGE 1

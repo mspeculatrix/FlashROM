@@ -116,7 +116,6 @@ def sendCommandWithAck(cmd: str, ack: str, verbose: bool) -> bool:
 	clearSerial()
 	output(f'Sending command: {cmd}', verbose)
 	ser.write(cmd.encode('ascii'))
-	ser.write(b'\n')
 	done: bool = False
 	attempts: int = 0
 	while not done:
@@ -138,11 +137,11 @@ def sendCommandWithAck(cmd: str, ack: str, verbose: bool) -> bool:
 def sendSizeInfo(file_size: int, verbose: bool) -> bool:
 	error: bool = False
 	output('Sending SIZE', verbose)
-	ser.write(b'SIZE\n')
-	sendWord(file_size)
+	ser.write(b'SIZE')
 	msg_in: bytes = ser.read(4)
 	if msg_in == b'SIZE':
 		output('- received: SIZE', verbose)
+		sendWord(file_size)
 		rec_file_sz: int = readWord()
 		output(f'- received filesize: 0x{hexStr(rec_file_sz, 4)}', verbose)
 		if file_size == rec_file_sz:
@@ -151,6 +150,8 @@ def sendSizeInfo(file_size: int, verbose: bool) -> bool:
 			output('- size mismatch', verbose)
 			error = True
 	else:
+		output('- failed to receive SIZE message', verbose)
+		output(f'- got {msg_in}', verbose)
 		error = True
 	return error
 
@@ -183,13 +184,14 @@ def main():
 		sys.argv.pop(0)  # we don't need the prog name, get rid of it
 		while len(sys.argv) > 0:  # process other arguments, if any
 			nextArg: str = sys.argv.pop(0)
-			if nextArg == '-f':  # we've specified a directory for the project
+			if nextArg == '-f':
 				romfile = sys.argv.pop(0)
 			if nextArg == '-q':
 				verbose = False
 			if nextArg == '-v':
 				verbose = True
-		clearSerial()
+
+	clearSerial()
 
 	output('Writing ROM image to Flash', verbose)
 	output(f'ROM image file: {romfile}', verbose)
@@ -242,19 +244,20 @@ def main():
 					else:
 						output('\n**ERROR', verbose)
 						exit(2)
-
-		output('Performing data check...', verbose)
-		mismatch: bool = False
-		# Expect 16 bytes back from client containing test data
-		dataItems, mismatch = getTestData(16, fileBuf)
-		printBuf(fileBuf, 16, verbose)
-		printBuf(dataItems, 16, verbose)
-		if mismatch:
-			output('- ERR: data mismatch', verbose)
-			# ser.write(b'*ERR\n')
-		else:
-			output('- data check OK', verbose)
-			# ser.write(b'CONF\n')
+		msg_in: bytes = ser.read(4)
+		if msg_in == b'VRFY':
+			output('Performing data check...', verbose)
+			mismatch: bool = False
+			# Expect 16 bytes back from client containing test data
+			dataItems, mismatch = getTestData(16, fileBuf)
+			printBuf(fileBuf, 16, verbose)
+			printBuf(dataItems, 16, verbose)
+			if mismatch:
+				output('- ERR: data mismatch', verbose)
+				# ser.write(b'*ERR\n')
+			else:
+				output('- data check OK', verbose)
+				# ser.write(b'CONF\n')
 		output('FINISHED', verbose)
 
 
