@@ -2,6 +2,7 @@
 
 
 import os
+import string
 import sys
 import time
 from pathlib import Path
@@ -180,20 +181,28 @@ def main():
 	filedir: str = 'files'
 	romfile: str = 'ROM.bin'
 	verbose: bool = True
+	command: str = 'BURN'
+	addressStr: str = ''
+
+	# COMMAND LINE FLAGS
 	if len(sys.argv) > 1:  # We have some command line args
 		sys.argv.pop(0)  # we don't need the prog name, get rid of it
 		while len(sys.argv) > 0:  # process other arguments, if any
 			nextArg: str = sys.argv.pop(0)
+			if nextArg == '-e':
+				command = 'CLRF'
 			if nextArg == '-f':
 				romfile = sys.argv.pop(0)
 			if nextArg == '-q':
 				verbose = False
+			if nextArg == '-r':
+				command = 'READ'
+				addressStr: str = sys.argv.pop(0)
 			if nextArg == '-v':
 				verbose = True
 
 	clearSerial()
 
-	output('Writing ROM image to Flash', verbose)
 	output(f'ROM image file: {romfile}', verbose)
 
 	fileBuf: list[bytes] = []
@@ -208,57 +217,101 @@ def main():
 
 	# STEP 1: Handshake
 	if not fault:
-		fault = sendCommandWithAck('BURN', 'ACKN', verbose)
+		fault = sendCommandWithAck(command, 'ACKN', verbose)
 
-	# STEP 2: Transmit & agree on file size
-	if not fault:
-		fault = sendSizeInfo(file_size, verbose)
+	if command == 'BURN':
+		# STEP 2: Transmit & agree on file size
+		if not fault:
+			fault = sendSizeInfo(file_size, verbose)
 
-	# STEP 3: Send WFLS command
-	if not fault:
-		fault = sendCommandWithAck('WFLS', 'WFLS', verbose)
+		# STEP 3: Send WFLS command
+		if not fault:
+			fault = sendCommandWithAck('WFLS', 'WFLS', verbose)
 
-	# STEP 4: Send data
-	if not fault:
-		output('Sending data...', verbose)
-		done: bool = False
-		byteIdx: int = 0
-		chunkCount: int = 0
-		while not done:
-			ser.write(fileBuf[byteIdx])
-			byteIdx += 1
-			if byteIdx % CHUNKSIZE == 0 or byteIdx == len(fileBuf):  # end of a chunk
-				# Wait for a response
-				response_ok = False
-				while not response_ok:
-					msg_in: bytes = ser.read(4)
-					if msg_in == b'EODT':  # we've sent all data
-						done = True
-						response_ok = True
-						output('\n- received: EODT', verbose)
-					elif msg_in == b'ACKN':  # sent after each chunk by MCU
-						response_ok = True
-						if verbose:
-							print(f'\b\b\b{chunkCount}', end='', flush=True)
-							chunkCount += 1
+		# STEP 4: Send data
+		if not fault:
+			output('Sending data...', verbose)
+			done: bool = False
+			byteIdx: int = 0
+			chunkCount: int = 0
+			while not done:
+				ser.write(fileBuf[byteIdx])
+				byteIdx += 1
+				if byteIdx % CHUNKSIZE == 0 or byteIdx == len(
+					fileBuf
+				):  # end of a chunk
+					# Wait for a response
+					response_ok = False
+					while not response_ok:
+						msg_in: bytes = ser.read(4)
+						if msg_in == b'EODT':  # we've sent all data
+							done = True
+							response_ok = True
+							output('\n- received: EODT', verbose)
+						elif msg_in == b'ACKN':  # sent after each chunk by MCU
+							response_ok = True
+							if verbose:
+								print(f'\b\b\b{chunkCount}', end='', flush=True)
+								chunkCount += 1
+						else:
+							output('\n**ERROR', verbose)
+							exit(2)
+			msg_in: bytes = ser.read(4)
+			if msg_in == b'VRFY':
+				output('Performing data check...', verbose)
+				mismatch: bool = False
+				# Expect 16 bytes back from client containing test data
+				dataItems, mismatch = getTestData(16, fileBuf)
+				printBuf(fileBuf, 16, verbose)
+				printBuf(dataItems, 16, verbose)
+				if mismatch:
+					output('- ERR: data mismatch', verbose)
+					# ser.write(b'*ERR\n')
+				else:
+					output('- data check OK', verbose)
+					# ser.write(b'CONF\n')
+			output('FINISHED', verbose)
+	elif command == 'CLRF':
+		"""
+		NOT WORKING YET - DON'T KNOW WHY
+		"""
+		if not fault:
+			done: bool = False
+			while not done:
+				msg_in: bytes = ser.read(4)
+				if msg_in == b'DONE':
+					done = True
+					output('Completed', verbose)
+				elif msg_in == b'SECT':
+					output('- sector erased', verbose)
+				else:
+					done = True
+					output('ERROR', verbose)
+	elif command == 'READ':
+		"""
+		As this option is all about seeing the contents of memory, we'll
+		ignore the value of verbose and just print to screen
+		"""
+		if not fault:
+			if len(addressStr) == 4:
+				# Test string contains only hex digits
+				if all(c in string.hexdigits for c in addressStr):
+					address: int = int(addressStr, 16)
+					sendWord(address)
+					response: int = readWord()
+					if response == address:
+						for _ in range(0, 16):
+							data, _ = getTestData(16)
+							for b in data:
+								print(format(b[0], '02X'), end=' ')
+							print()
+
 					else:
-						output('\n**ERROR', verbose)
-						exit(2)
-		msg_in: bytes = ser.read(4)
-		if msg_in == b'VRFY':
-			output('Performing data check...', verbose)
-			mismatch: bool = False
-			# Expect 16 bytes back from client containing test data
-			dataItems, mismatch = getTestData(16, fileBuf)
-			printBuf(fileBuf, 16, verbose)
-			printBuf(dataItems, 16, verbose)
-			if mismatch:
-				output('- ERR: data mismatch', verbose)
-				# ser.write(b'*ERR\n')
+						print("ERROR: addresses don't match!")
+				else:
+					print('ERROR: invalid address.')
 			else:
-				output('- data check OK', verbose)
-				# ser.write(b'CONF\n')
-		output('FINISHED', verbose)
+				print('ERROR: wrong address length: must be 4 hex chars.')
 
 
 if __name__ == '__main__':

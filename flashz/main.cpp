@@ -236,7 +236,7 @@ int main(void) {
 				// address.
 			} else if (strcmp(cmdBuf, "READ") == 0) {
 				// Confirm command received
-				serial.write("READ");
+				serial.write("ACKN");
 				// Get address (two bytes) & relay it back.
 				uint16_t address = getWord();
 				sendWord(address);

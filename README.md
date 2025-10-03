@@ -18,15 +18,20 @@ The dev board consists of an ATMEGA328PB microcontroller, SRAM, port expanders t
 
 The code consists of:
 
-- `flashprog`: C++ code for an ATMEGA328PB running at 16MHz.
-- `flashterm`: Python code to run on the PC. Uses curses and pyserial.
-- `flashburn`: Python code. Simplified CLI version of flashterm with no curses and just used to upload & flash image without using RAM. Intended for use with scripting.
+- `**flashprog**` : C++ code for an ATmega328PB running at 16MHz.
+- `**flashterm**` : Python code to run on the PC to interact with `flashprog`. Uses curses and pyserial.
+- `**flashz**` : C++ code for an ATmega4809 running at 20MHz. A stripped-down version of `flashprog` intended for use with `flashburn` below. A proof-of-concept for integrating all this flash malarky into the Zolatron project.
+- `**flashburn**` : Python code. Simplified CLI version of `flashterm` with no curses and just used to upload & flash image without using RAM. Intended for use with scripting. Works with and ATmega4809 running `flashz`. Doesn't work with `flashprog`.
 
 ![Screenshots](img/FlashROM-screengrabs-1.png)Python code running on Linux.
 
 ## VERSION HISTORY
 
 Dates are when the `dev` branch was merged into `main`.
+
+### VERSION 1.5 - 03/10/2025
+
+- Created `flashz` and modified `flashburn.py` to work with it.
 
 ### VERSION 1.4 - 27/09/2025
 
@@ -42,6 +47,5 @@ Dates are when the `dev` branch was merged into `main`.
 
 ## TO DO
 
-- [flashterm.py] Sanity checking for address input values.
 - [flashterm.py] Allow user setting of serial port.
 - [both] Try increasing serial speed for faster upload.

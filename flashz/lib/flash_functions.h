@@ -31,34 +31,35 @@ void flashByteWrite(uint16_t address, uint8_t value) {
 	PORTA.OUTSET = FL_CE;
 }
 
-// Write a value to an address
+// Write a byte value to an address
 void flashWrite(uint16_t address, uint8_t value) {
+	DATA_PORT_OUTPUT;
 	setAddress(address);
 	PORTD.OUT = value;
 	PORTA.OUTCLR = FL_WE;
 	_delay_us(FLASH_BYTE_DELAY); 	// pause for effect
 	PORTA.OUTSET = FL_WE;
 	_delay_us(FLASH_BYTE_DELAY);
-
+	DATA_PORT_INPUT; 				// To ensure high-Z state
 }
 
 // Read a byte value from an address
 uint8_t readFlash(uint32_t address) {
 	uint8_t value = 0;
-	setAddress(address); 		// set address bus
-	PORTA.OUTCLR = FL_CE;			// enable flash chip
+	setAddress(address); 					// set address bus
+	PORTA.OUTCLR = FL_CE;					// enable flash chip
 	PORTA.OUTCLR = FL_OE;
 	_delay_us(FLASH_BYTE_DELAY);
 	value = PORTD.IN;
 	PORTA.OUTSET = FL_OE;
-	PORTA.OUTSET = FL_CE;			// disable flash chip
+	PORTA.OUTSET = FL_CE;					// disable flash chip
 	_delay_us(FLASH_BYTE_DELAY);
 	return value;
 }
 
 // Erase an entire 4KB sector starting at a given address
 void sectorErase(uint16_t startAddress) {
-	PORTA.OUTCLR = FL_CE;			// enable flash chip
+	PORTA.OUTCLR = FL_CE;					// enable flash chip
 	flashWrite(0x5555, 0xAA);
 	flashWrite(0x2AAA, 0x55);
 	flashWrite(0x5555, 0x80);
@@ -66,7 +67,8 @@ void sectorErase(uint16_t startAddress) {
 	flashWrite(0x2AAA, 0x55);
 	flashWrite(startAddress, 0x30);
 	_delay_ms(FLASH_SECTOR_ERASE_DELAY);	// allow the dust to settle
-	PORTA.OUTSET = FL_CE;			// disable flash chip
+	PORTA.OUTSET = FL_CE;					// disable flash chip
+	// _delay_ms(FLASH_SECTOR_ERASE_DELAY); // TEMP: debugging
 }
 
 #endif
