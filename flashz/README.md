@@ -1,7 +1,5 @@
 # FLASHZ
 
-NB: **WORK IN PROGRESS**
-
 This is a cut-down version of the `flashprog` AVR code, but targeted to the ATmega4809 microcontroller. It is also for a solution with no RAM, so writing of incoming ROM image data is done direct to the Flash memory. And it uses the MCU's GPIO pins to control the data and address lines, so no need for the I2C port expanders.
 
 It is designed to be used with the `flashburn.py` Python program.

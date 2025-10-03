@@ -12,6 +12,7 @@ namespace smd_avr_serial {
 	uint8_t recvbuf_read_idx = 0;
 }
 
+// Interrupt service routine - invoked when data is received on USART0.
 ISR(USART0_RXC_vect) { // RX Complete
 	// get incoming byte & add to buffer
 	recvbuf[recvbuf_write_idx] = USART0.RXDATAL;
@@ -27,22 +28,24 @@ ISR(USART0_RXC_vect) { // RX Complete
 // -------------------------------------------------------------------------
 SMD_AVR_Serial4809::SMD_AVR_Serial4809()  // instantiate with default baudrate,
 {                                  // 8 data bits, 1 stop bit
-	_init(19200, 8, 1);
+	_init(19200, SER_DATA_BITS8, SER_STOP_BITS1, SER_PARITY_NONE);
 }
 
 SMD_AVR_Serial4809::SMD_AVR_Serial4809(uint16_t baudrate)    // instantiate with definable
 {                                           // baudrate, 8 data bits, 1 stop bit
-	_init(baudrate, 8, 1);
+	_init(baudrate, SER_DATA_BITS8, SER_STOP_BITS1, SER_PARITY_NONE);
 }
 
 SMD_AVR_Serial4809::SMD_AVR_Serial4809(uint16_t baudrate, uint8_t dataBits, uint8_t stopBits) {
-	_init(baudrate, dataBits, stopBits);
+	_init(baudrate, dataBits, stopBits, SER_PARITY_NONE);
 }
 
-void SMD_AVR_Serial4809::_init(uint16_t baudrate, uint8_t dataBits, uint8_t stopBits) {
+// This is the main constructor, called by all the others.
+void SMD_AVR_Serial4809::_init(uint16_t baudrate, uint8_t dataBits, uint8_t stopBits, uint8_t parity) {
 	_baud = baudrate;
 	_dataBits = dataBits;
 	_stopBits = stopBits;
+	_parity = parity;
 	_started = false;
 	_useCR = false;
 	_sendNullTerminator = false;
@@ -57,13 +60,16 @@ uint8_t SMD_AVR_Serial4809::begin() {
 	uint16_t baud_setting = (64 * F_CPU + ((16UL * _baud) / 2)) / (16UL * _baud);
 	USART0.BAUD = baud_setting;
 	// Set the frame format with USART0.CTRLC
-	// THIS NEEDS SORTING USING THE _dataBits AND _stopBits VARS
 	// From left to right:
 	// 00  = Asynchronous mode CMODE
 	// 00  = No parity         PMODE (01 = even)
 	// 0   = 1 stop bit        SBMODE
 	// 011 = 8 bits            CHSIZE
-	USART0.CTRLC = 0b00000011; 				// or could use USART_CHSIZE_8BIT_gc
+	uint8_t ctrlc = 0;
+	ctrlc |= (_parity << 4);
+	ctrlc |= (_stopBits << 3);
+	ctrlc |= (_dataBits);
+	USART0.CTRLC = ctrlc; 				// or could use USART_CHSIZE_8BIT_gc
 	PORTA.DIRSET = PIN0_bm;					// Set TX pin as output
 	PORTA.DIRCLR = PIN1_bm;  				// Make sure RX pin is input
 	USART0.CTRLB = USART_RXEN_bm | USART_TXEN_bm; // Enable TX and RX

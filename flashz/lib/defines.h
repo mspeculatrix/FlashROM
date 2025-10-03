@@ -11,22 +11,23 @@
 #define DATA_PORT_OUTPUT PORTD.DIR = 0xFF
 #define DATA_PORT_INPUT PORTD.DIR = 0
 
-#define OUTPUT 0b00000000		// for setting data port direction
-#define INPUT  0b11111111
-
 #define NEWLINE 10
 #define CR 13
 
-#define CHUNKSIZE 64
+#define CHUNKSIZE 64 				// Size of each chunk when sending data
 
+#define CTRL_PORT PORTA				// Port fo control signals
+#define DATA_PORT PORTD				// Port for data bus
+
+// Let's name our control signal pins.
 // The following signals are all on PORTA
 #define CPU_RDY     PIN2_bm
 #define CPU_BE      PIN3_bm
 #define SYS_PHI2    PIN4_bm
 #define SYS_ROM_EN  PIN5_bm
-#define FL_CE       PIN5_bm // alias
+#define FL_CE       PIN5_bm 		// alias for previous
 #define SYS_READ_EN PIN6_bm
-#define FL_OE       PIN6_bm // alias
+#define FL_OE       PIN6_bm 		// alias for previous
 #define FL_WE       PIN7_bm
 
 #define CTRL_PORT_MASK 0b11111100

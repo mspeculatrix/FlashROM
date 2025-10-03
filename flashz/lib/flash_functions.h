@@ -18,27 +18,25 @@ void flashWrite(uint16_t address, uint8_t value);
 uint8_t readFlash(uint32_t address);
 void sectorErase(uint16_t startAddress);
 
-// FUNCTIONS
-
 // This is the main function to call to write a byte to memory. Makes multiple
 // calls to flashWrite below.
 void flashByteWrite(uint16_t address, uint8_t value) {
-	PORTA.OUTCLR = FL_CE;
+	CTRL_PORT.OUTCLR = FL_CE;
 	flashWrite(0x5555, 0xAA);
 	flashWrite(0x2AAA, 0x55);
 	flashWrite(0x5555, 0xA0);
 	flashWrite(address, value);
-	PORTA.OUTSET = FL_CE;
+	CTRL_PORT.OUTSET = FL_CE;
 }
 
 // Write a byte value to an address
 void flashWrite(uint16_t address, uint8_t value) {
 	DATA_PORT_OUTPUT;
 	setAddress(address);
-	PORTD.OUT = value;
-	PORTA.OUTCLR = FL_WE;
+	DATA_PORT.OUT = value;
+	CTRL_PORT.OUTCLR = FL_WE;
 	_delay_us(FLASH_BYTE_DELAY); 	// pause for effect
-	PORTA.OUTSET = FL_WE;
+	CTRL_PORT.OUTSET = FL_WE;
 	_delay_us(FLASH_BYTE_DELAY);
 	DATA_PORT_INPUT; 				// To ensure high-Z state
 }
@@ -47,19 +45,19 @@ void flashWrite(uint16_t address, uint8_t value) {
 uint8_t readFlash(uint32_t address) {
 	uint8_t value = 0;
 	setAddress(address); 					// set address bus
-	PORTA.OUTCLR = FL_CE;					// enable flash chip
-	PORTA.OUTCLR = FL_OE;
+	CTRL_PORT.OUTCLR = FL_CE;					// enable flash chip
+	CTRL_PORT.OUTCLR = FL_OE;
 	_delay_us(FLASH_BYTE_DELAY);
-	value = PORTD.IN;
-	PORTA.OUTSET = FL_OE;
-	PORTA.OUTSET = FL_CE;					// disable flash chip
+	value = DATA_PORT.IN;
+	CTRL_PORT.OUTSET = FL_OE;
+	CTRL_PORT.OUTSET = FL_CE;					// disable flash chip
 	_delay_us(FLASH_BYTE_DELAY);
 	return value;
 }
 
 // Erase an entire 4KB sector starting at a given address
 void sectorErase(uint16_t startAddress) {
-	PORTA.OUTCLR = FL_CE;					// enable flash chip
+	CTRL_PORT.OUTCLR = FL_CE;					// enable flash chip
 	flashWrite(0x5555, 0xAA);
 	flashWrite(0x2AAA, 0x55);
 	flashWrite(0x5555, 0x80);
@@ -67,8 +65,7 @@ void sectorErase(uint16_t startAddress) {
 	flashWrite(0x2AAA, 0x55);
 	flashWrite(startAddress, 0x30);
 	_delay_ms(FLASH_SECTOR_ERASE_DELAY);	// allow the dust to settle
-	PORTA.OUTSET = FL_CE;					// disable flash chip
-	// _delay_ms(FLASH_SECTOR_ERASE_DELAY); // TEMP: debugging
+	CTRL_PORT.OUTSET = FL_CE;					// disable flash chip
 }
 
 #endif

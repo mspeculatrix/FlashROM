@@ -10,7 +10,7 @@ from pathlib import Path
 import serial
 
 MAX_HANDSHAKES: int = 4
-VERSION: str = '1.4'
+VERSION: str = '1.6'
 SERIAL_PORT: str = '/dev/ttyUSB0'  # configure for your machine
 BAUDRATE: int = 9600  # fast enough
 CHUNKSIZE: int = 64  # num bytes per chunk when sending data
@@ -272,9 +272,6 @@ def main():
 					# ser.write(b'CONF\n')
 			output('FINISHED', verbose)
 	elif command == 'CLRF':
-		"""
-		NOT WORKING YET - DON'T KNOW WHY
-		"""
 		if not fault:
 			done: bool = False
 			while not done:

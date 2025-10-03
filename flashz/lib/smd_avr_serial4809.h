@@ -1,7 +1,7 @@
 /*
-  C++ Serial Library for AVR microcontrollers
-   *** IMPORTANT ***
-  F_CPU must be set.
+  C++ Serial Library for ATmega4809
+
+  *** IMPORTANT - F_CPU must be set. ***
 
   Typical use:
   SMD_AVR_Serial4809 serial = SMD_AVR_Serial4809(19200);
@@ -41,6 +41,17 @@
 #define SER_READLINE_BUFFER_MAX 255
 
 #define DEF_SEND_CHAR_DELAY 5
+
+#define SER_PARITY_NONE 0b00
+#define SER_PARITY_EVEN 0b10
+#define SER_PARITY_ODD  0b11
+
+#define SER_STOP_BITS1  0
+#define SER_STOP_BITS2  1
+
+#define SER_DATA_BITS7 0b010
+#define SER_DATA_BITS8 0b011
+
 
 // ERROR & RESULT CODES
 //#define SER_RES_INT_TOO_LARGE 1
@@ -95,17 +106,16 @@ protected:
 	uint8_t _dataBits;
 	bool _echo;
 	uint8_t _stopBits;
+	uint8_t _parity;
 	bool _started;
 	bool _sendNullTerminator;	// add null terminator 0 to end of all sends?
 	bool _useCR;
 
-	void _init(uint16_t baudrate, uint8_t dataBits, uint8_t stopBits);
+	void _init(uint16_t baudrate, uint8_t dataBits, uint8_t stopBits, uint8_t parity);
 	uint8_t _writeInt16(const int twoByteInt, bool addReturn);	// max value 32767
 	uint8_t _writeLongInt(const long longInt, bool addReturn);
 	uint8_t _writeDouble(const double fnum, bool addReturn);
 	uint8_t _writeStr(const char* string, bool addReturn);
-	//int _max_int_size;
-	//uint8_t _itoa_str_length;
 };
 
 #endif

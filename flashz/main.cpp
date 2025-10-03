@@ -28,74 +28,6 @@ uint8_t dataChunk[CHUNKSIZE];
 SMD_AVR_Serial4809 serial = SMD_AVR_Serial4809(SERIAL_BAUDRATE);
 
 /*******************************************************************************
-*****   FUNCTIONS                                                          *****
-*******************************************************************************/
-
-// PROTOTYPES
-bool checkForMessage(const char* msg, char* buf);
-uint8_t getCommand(char* buf);
-uint16_t getWord();
-void sendWord(uint16_t word);
-
-// Look for a specific incoming message. Wrapper to getCommand()
-bool checkForMessage(const char* msg, char* buf) {
-	bool error = false;
-	getCommand(buf);
-	if (!strcmp(buf, msg) == 0) {
-		error = true;
-	}
-	return error;
-}
-
-// Checks for characters coming in over serial and adds them to the given
-// command buffer. It's used for commands only.
-// Returns the number of chars received, although I don't think I do anything
-// with that information.
-// Returns when it encounters a linefeed or the buffer is full.
-uint8_t getCommand(char* buf) {
-	clearBuf(buf, CMD_BUF_LEN);
-	bool recvd = false;
-	uint8_t idx = 0;
-	uint8_t inChar = 0;
-	while (!recvd && idx < CMD_BUF_LEN) {
-		if (serial.readByte(&inChar)) {
-			if (inChar == NEWLINE && idx > 0) {
-				buf[idx] = 0;	// terminate
-				recvd = true;
-			} else if (inChar == CR) {
-				// ignore carriage returns
-			} else {
-				buf[idx] = inChar;
-				idx++;
-			}
-		}
-	}
-	return idx;
-}
-
-// Retrieve two bytes from the serial input and return as uint16_t integer.
-// Blocking. It won't return until it has received two bytes.
-uint16_t getWord() {
-	uint16_t word = 0;
-	uint8_t byteCount = 2; // because MSB first
-	uint8_t wordBuf[2];
-	while (byteCount > 0) {
-		if (serial.inWaiting()) {
-			byteCount--;
-			wordBuf[byteCount] = serial.getByte();
-		}
-	}
-	word = (wordBuf[1] << 8) + wordBuf[0];
-	return word;
-}
-
-// Send a 16-bit value across the serial as two bytes, MSB-first.
-void sendWord(uint16_t word) {
-	serial.sendByte((uint8_t)(word >> 8));	// MSB
-	serial.sendByte((uint8_t)(word & 0x00FF));	// LSB
-}
-
-/*******************************************************************************
 *****   MAIN                                                               *****
 *******************************************************************************/
 int main(void) {
@@ -119,14 +51,14 @@ int main(void) {
 	PORTC.PIN7CTRL = PORT_PULLUPEN_bm;
 
 	// Set up pins
-	DATA_PORT_INPUT; 		// Start as input, so high-Z
+	DATA_PORT_INPUT; 					// Start as input, so high-Z
 	disableAddressBusCtrl();
 	disableControlSignals();
 
 	serial.begin();
 
-	char cmdBuf[CMD_BUF_LEN];
-	bool cmdRecvd = false;
+	char cmdBuf[CMD_BUF_LEN]; 		// For receiving commands from remote PC
+	bool cmdRecvd = false;			// Do we have one yet?
 
 	/***************************************************************************
 	******   MAIN LOOP													   *****
@@ -138,27 +70,22 @@ int main(void) {
 			enableControlSignals();
 			enableAddressBusCtrl();
 
-			// -----------------------------------------------------------------
-			// ----- BURN - Download data & write to Flash ---------------------
-			// -----------------------------------------------------------------
-			// Write the contents of the RAM to the Flash memory.
 			if (strcmp(cmdBuf, "BURN") == 0) {
+				// -------------------------------------------------------------
+				// ----- BURN - Download data & write to Flash -----------------
+				// -------------------------------------------------------------
 				serial.write("ACKN");
 				dataSize = 0; // reset
 				bool error = false;
 				error = checkForMessage("SIZE", cmdBuf);
 				if (!error) {
-					// Send back 'SIZE'
-					serial.write("SIZE");
-					// Get the two bytes with the data sixe
-					dataSize = getWord();
-					// Send back two file size data bytes, MSB first
-					sendWord(dataSize);
+					serial.write("SIZE"); 	// Send back 'SIZE' to confirm
+					dataSize = getWord();	// Get two bytes with the data size
+					sendWord(dataSize);		// Send back as confirmation
 
 					error = checkForMessage("WFLS", cmdBuf);
 					if (!error) {
-						// Send the same message back as confirmation.
-						serial.write("WFLS");
+						serial.write("WFLS"); 		// Send back as confirmation
 					} else {
 						serial.write("*ERR");
 					}
@@ -187,7 +114,7 @@ int main(void) {
 							// last chunk.
 
 							// check if we're at a sector boundary
-							// - clear sector
+							// - if so, clear sector
 							if (byteIdx % FLASH_SECTOR_SIZE == 0) {
 								sectorErase(byteIdx);
 							}
@@ -199,9 +126,9 @@ int main(void) {
 							}
 							chunkIdx = 0;
 							if (byteIdx == dataSize) {
-								serial.write("EODT"); // sent all bytes
+								serial.write("EODT"); // all bytes received
 							} else {
-								serial.write("ACKN"); // to prompt sending of next chunk
+								serial.write("ACKN"); // prompt sending of next chunk
 							}
 						}
 						// CHECK DATA
@@ -229,14 +156,13 @@ int main(void) {
 					serial.write("SECT");
 				}
 				serial.write("DONE");
+			} else if (strcmp(cmdBuf, "READ") == 0) {
 				// -------------------------------------------------------------
 				// ----- READ - read Flash memory ------------------------------
 				// -------------------------------------------------------------
 				// Read 256 values from Flash memory, starting at a given
 				// address.
-			} else if (strcmp(cmdBuf, "READ") == 0) {
-				// Confirm command received
-				serial.write("ACKN");
+				serial.write("ACKN");			// Confirm command received
 				// Get address (two bytes) & relay it back.
 				uint16_t address = getWord();
 				sendWord(address);
@@ -252,9 +178,6 @@ int main(void) {
 			cmdRecvd = false;
 			clearBuf(cmdBuf, CMD_BUF_LEN);
 			serial.clearInputBuffer();
-			cmdRecvd = false;
-			//cmdBufIdx = 0;
-
 			disableControlSignals();
 			disableAddressBusCtrl();
 			DATA_PORT_INPUT;
@@ -263,6 +186,5 @@ int main(void) {
 			getCommand(cmdBuf); // don't come back until you've got a message
 			cmdRecvd = true;
 		}
-
 	}
 }

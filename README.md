@@ -29,6 +29,10 @@ The code consists of:
 
 Dates are when the `dev` branch was merged into `main`.
 
+### VERSION 1.6 - 03/10/2025
+
+- Tidied up and added comments. Final version for a while as I concentrate on other stuff.
+
 ### VERSION 1.5 - 03/10/2025
 
 - Created `flashz` and modified `flashburn.py` to work with it.
