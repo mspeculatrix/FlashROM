@@ -31,17 +31,17 @@ SMD_AVR_Serial4809::SMD_AVR_Serial4809()  // instantiate with default baudrate,
 	_init(19200, SER_DATA_BITS8, SER_STOP_BITS1, SER_PARITY_NONE);
 }
 
-SMD_AVR_Serial4809::SMD_AVR_Serial4809(uint16_t baudrate)    // instantiate with definable
+SMD_AVR_Serial4809::SMD_AVR_Serial4809(uint32_t baudrate)    // instantiate with definable
 {                                           // baudrate, 8 data bits, 1 stop bit
 	_init(baudrate, SER_DATA_BITS8, SER_STOP_BITS1, SER_PARITY_NONE);
 }
 
-SMD_AVR_Serial4809::SMD_AVR_Serial4809(uint16_t baudrate, uint8_t dataBits, uint8_t stopBits) {
+SMD_AVR_Serial4809::SMD_AVR_Serial4809(uint32_t baudrate, uint8_t dataBits, uint8_t stopBits) {
 	_init(baudrate, dataBits, stopBits, SER_PARITY_NONE);
 }
 
 // This is the main constructor, called by all the others.
-void SMD_AVR_Serial4809::_init(uint16_t baudrate, uint8_t dataBits, uint8_t stopBits, uint8_t parity) {
+void SMD_AVR_Serial4809::_init(uint32_t baudrate, uint8_t dataBits, uint8_t stopBits, uint8_t parity) {
 	_baud = baudrate;
 	_dataBits = dataBits;
 	_stopBits = stopBits;

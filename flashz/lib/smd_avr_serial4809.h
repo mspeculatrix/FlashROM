@@ -69,8 +69,8 @@ class SMD_AVR_Serial4809 {
 public:
 	// Constructors
 	SMD_AVR_Serial4809();
-	SMD_AVR_Serial4809(uint16_t baudrate);
-	SMD_AVR_Serial4809(uint16_t baudrate, uint8_t dataBits, uint8_t stopBits);
+	SMD_AVR_Serial4809(uint32_t baudrate);
+	SMD_AVR_Serial4809(uint32_t baudrate, uint8_t dataBits, uint8_t stopBits);
 
 	// Methods
 	uint8_t begin();                // initialise
@@ -111,7 +111,7 @@ protected:
 	bool _sendNullTerminator;	// add null terminator 0 to end of all sends?
 	bool _useCR;
 
-	void _init(uint16_t baudrate, uint8_t dataBits, uint8_t stopBits, uint8_t parity);
+	void _init(uint32_t baudrate, uint8_t dataBits, uint8_t stopBits, uint8_t parity);
 	uint8_t _writeInt16(const int twoByteInt, bool addReturn);	// max value 32767
 	uint8_t _writeLongInt(const long longInt, bool addReturn);
 	uint8_t _writeDouble(const double fnum, bool addReturn);

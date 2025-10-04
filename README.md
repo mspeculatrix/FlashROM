@@ -29,6 +29,11 @@ The code consists of:
 
 Dates are when the `dev` branch was merged into `main`.
 
+### IN PROGRESS
+
+- Changed baudrate in serial class to uint32_t from uint16_t
+- Increased baudrate in `flashz` and `flashburn.py` to 38400.
+
 ### VERSION 1.6 - 03/10/2025
 
 - Tidied up and added comments. Final version for a while as I concentrate on other stuff.

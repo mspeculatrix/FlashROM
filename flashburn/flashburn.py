@@ -12,7 +12,7 @@ import serial
 MAX_HANDSHAKES: int = 4
 VERSION: str = '1.6'
 SERIAL_PORT: str = '/dev/ttyUSB0'  # configure for your machine
-BAUDRATE: int = 9600  # fast enough
+BAUDRATE: int = 38400  # fast enough
 CHUNKSIZE: int = 64  # num bytes per chunk when sending data
 
 ser = serial.Serial(

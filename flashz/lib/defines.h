@@ -5,8 +5,7 @@
 
 #include <avr/io.h>
 
-// #define SERIAL_BAUDRATE 38400UL
-#define SERIAL_BAUDRATE 9600UL
+#define SERIAL_BAUDRATE 38400UL
 
 #define DATA_PORT_OUTPUT PORTD.DIR = 0xFF
 #define DATA_PORT_INPUT PORTD.DIR = 0
